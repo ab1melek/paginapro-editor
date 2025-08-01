@@ -1,0 +1,61 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/javascript-node-postgres
+{
+	"name": "Node.js & PostgreSQL",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+			"moby": true,
+			"installDockerBuildx": true,
+			"installDockerComposeSwitch": true,
+			"version": "latest",
+			"dockerDashComposeVersion": "v2"
+		},
+		"ghcr.io/devcontainers/features/github-cli:1": {}
+	},
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// This can be used to network with other containers or with the host.
+	"forwardPorts": [
+		3000,
+		5432
+	],
+	"portsAttributes": {
+		"3000": {
+			"label": "NodeJS API",
+			"protocol": "http"
+		},
+		"5432": {
+			"label": "Dev PostgreSQL Database",
+			"protocol": "http"
+		}
+	},
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"initializeCommand": "echo 'Initializing container...'",
+	"onCreateCommand": "npm install",
+	"postCreateCommand": "npm run db:migrate:run && npm run db:seeders:all",
+	"postStartCommand": "npm run dev",
+	// Configure tool-specific properties.
+	// "customizations": {},
+	"customizations": {
+		"vscode": {
+			"settings": {
+				// Set the color theme for the VS Code workbench. Team members can change this setting as per their preference.
+				"workbench.colorTheme": "Default Dark Modern"
+			},
+				"extensions": [
+					"humao.rest-client",
+					"arjun.swagger-viewer"
+				]
+		}
+	},
+	"mounts": [
+		// "source=${localEnv:USERPROFILE}/.ssh,target=/home/node/.ssh,type=bind,consistency=cached" // Uncomment this line if you are using a Windows OS.
+		"source=${localEnv:HOME}/.ssh,target=/home/node/.ssh,type=bind,consistency=cached" // Uncomment this line if you are using a non-Windows OS.
+	],
+	"remoteUser": "node"
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
