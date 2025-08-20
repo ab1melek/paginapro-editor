@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import styles from "./Editor.module.css";
 
 const Editor = dynamic(() => import("../../../components/Editor"), {
   ssr: false,
@@ -8,7 +9,7 @@ const Editor = dynamic(() => import("../../../components/Editor"), {
 
 export default function EditorPage() {
   return (
-    <main style={{ padding: 20 }}>
+    <main className={styles.main}>
       <h1>Mi Editor 🚀</h1>
       <Editor />
     </main>

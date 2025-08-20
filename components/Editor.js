@@ -1,4 +1,3 @@
-// components/Editor.js
 "use client";
 
 import EditorJS from "@editorjs/editorjs";
