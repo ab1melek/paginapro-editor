@@ -4,7 +4,7 @@
 export default function EditorPage() {
   return (
     <main style={{ padding: 20 }}>
-      <h1>Página Principal</h1>
+      <h1>Soy Dashboard</h1>
     </main>
   );
 }
