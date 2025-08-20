@@ -3,9 +3,7 @@ import Code from '@editorjs/code'
 import Delimiter from '@editorjs/delimiter'
 import Embed from '@editorjs/embed'
 import Header from '@editorjs/header'
-import Image from '@editorjs/image'
 import InlineCode from '@editorjs/inline-code'
-import LinkTool from '@editorjs/link'
 import List from '@editorjs/list'
 import Marker from '@editorjs/marker'
 import Paragraph from '@editorjs/paragraph'
@@ -16,20 +14,36 @@ import Table from '@editorjs/table'
 import Warning from '@editorjs/warning'
 
 export const EDITOR_JS_TOOLS = {
-  paragraph: Paragraph,
+  paragraph: {
+    class: Paragraph,
+    inlineToolbar: true,
+  },
+  header: {
+    class: Header,
+    inlineToolbar: true,
+    config: {
+      levels: [2, 3, 4],
+      defaultLevel: 2,
+    },
+  },
+  list: {
+    class: List,
+    inlineToolbar: true,
+  },
+  checklist: CheckList,
+  quote: {
+    class: Quote,
+    inlineToolbar: true,
+  },
+  code: Code,
+  inlineCode: InlineCode,
   embed: Embed,
   table: Table,
-  list: List,
   warning: Warning,
-  code: Code,
-  linkTool: LinkTool,
-  image: Image,
-  raw: Raw,
-  header: Header,
-  quote: Quote,
-  marker: Marker,
-  checklist: CheckList,
-  delimiter: Delimiter,
-  inlineCode: InlineCode,
+  // linkTool: LinkTool,
+  // image: Image,
   simpleImage: SimpleImage,
+  raw: Raw,
+  delimiter: Delimiter,
+  marker: Marker,
 }
