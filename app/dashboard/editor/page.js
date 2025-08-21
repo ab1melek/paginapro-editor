@@ -29,7 +29,7 @@ export default function EditorPage() {
     <main className={styles.main}>
       <h1>Mi Editor 🚀</h1>
       <Editor ref={editorRef} />
-      <Button label="Guardar" onClick={handleSaveClick} />
+      <Button label="Guardar" onClick={handleSaveClick} className={styles.saveButton} />
     </main>
   );
 }
