@@ -1,7 +1,7 @@
 "use client";
 
 import EditorJS from "@editorjs/editorjs";
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EDITOR_JS_TOOLS } from "./utils/tools.js";
 
 const INITIAL_DATA = {
@@ -14,7 +14,7 @@ const INITIAL_DATA = {
   ],
 };
 
-export default function Editor() {
+const Editor = forwardRef((props, ref) => {
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -35,5 +35,23 @@ export default function Editor() {
     };
   }, []);
 
+  const handleSave = async () => {
+    if (editorRef.current) {
+      try {
+        const savedData = await editorRef.current.save();
+        return savedData;
+      } catch (error) {
+        console.error("Error al guardar los datos:", error);
+        throw error;
+      }
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    save: handleSave,
+  }));
+
   return <div id="editorjs" />;
-}
+});
+
+export default Editor;
