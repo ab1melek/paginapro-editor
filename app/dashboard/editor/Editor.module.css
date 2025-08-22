@@ -7,7 +7,7 @@
     top: 10px; /* Ajusta la distancia desde la parte superior */
     right: 50px; /* Ajusta la distancia desde la parte derecha */
     padding: 10px 20px;
-    background-color: #ff007f; /* Color de fondo */
+    background-color: #295417; /* Color de fondo */
     color: white; /* Color del texto */
     border: none; /* Sin bordes */
     border-radius: 5px; /* Bordes redondeados */
@@ -15,5 +15,5 @@
 }
 
 .saveButton:hover {
-    background-color: #e60073; /* Color de fondo al pasar el cursor */
+    background-color: #2b9400; /* Color de fondo al pasar el cursor */
 }

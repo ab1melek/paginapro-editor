@@ -37,6 +37,17 @@ export default function EditorPage() {
     if (editorRef.current) {
       try {
         const savedData = await editorRef.current.save(); // Llama a la función save del editor
+        
+        // Solicitar el nombre de la página si no está presente
+        if (!savedData.slug) {
+          const slug = prompt("Ingresa el nombre de la nueva página:");
+          if (!slug || slug.trim() === "") {
+            alert("El nombre de la página no puede estar vacío.");
+            return; // Detener el guardado si no hay un nombre válido
+          }
+          savedData.slug = slug; // Asignar el nombre ingresado
+        }
+
         console.log("Datos generados:", savedData);
         await callEditorService(savedData);
         alert("Datos guardados correctamente");
