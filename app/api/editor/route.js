@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createPage } from "../services/createPage.service";
+import { getPages } from "../services/getPages.services";
 
 export async function POST(req) {
     try {
