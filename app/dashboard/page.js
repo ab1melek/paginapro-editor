@@ -15,6 +15,11 @@ export default function DashboardPage() {
     setPages(data);
   };
 
+  // Manejar la creación de una nueva página
+  const handleCreate = () => {
+    router.push(`/dashboard/editor`); // Redirigir al editor sin un ID
+  };
+
   // Manejar la edición de una página
   const handleEdit = (id) => {
     router.push(`/dashboard/editor?id=${id}`); // Redirigir al editor con el ID de la página
@@ -45,6 +50,9 @@ export default function DashboardPage() {
   return (
     <main style={{ padding: 20 }}>
       <h1>Dashboard</h1>
+            <button onClick={handleCreate} style={{ marginBottom: 20 }}>
+        Crear nueva página
+      </button>
       <PageList pages={pages} onEdit={handleEdit} onDelete={handleDelete} />
     </main>
   );
