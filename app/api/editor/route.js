@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createPage } from "../services/createPage.service";
+import { getPageById } from "../services/editPageById.service";
 import { getPages } from "../services/getPages.services";
 
 export async function POST(req) {
@@ -21,8 +22,9 @@ export async function GET(req) {
 
     if (id) {
       // Obtener una página específica
-      const page = await getPageById(id);
-      return NextResponse.json(page, { status: 200 });
+  const page = await getPageById(id);
+  console.log("Página obtenida por ID", id, page); // <-- solo visualizar datos
+  return NextResponse.json(page, { status: 200 });
     } else {
       // Obtener todas las páginas
       const result = await getPages();

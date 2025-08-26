@@ -20,8 +20,19 @@ export default function DashboardPage() {
     router.push(`/dashboard/editor`); // Redirigir al editor sin un ID
   };
 
-  // Manejar la edición de una página
-  const handleEdit = (id) => {
+  // Manejar la edición de una página: primero obtener y loguear datos
+  const handleEdit = async (id) => {
+    try {
+      const res = await fetch(`/api/editor?id=${id}`);
+      if (res.ok) {
+        const pageData = await res.json();
+        console.log("Datos de la página antes de navegar:", pageData);
+      } else {
+        console.warn("No se pudo obtener la página", id);
+      }
+    } catch (e) {
+      console.error("Error al obtener la página antes de editar:", e);
+    }
     router.push(`/dashboard/editor?id=${id}`); // Redirigir al editor con el ID de la página
   };
 
