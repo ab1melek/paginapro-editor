@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createPage } from "../services/createPage.service";
-import { getPageById } from "../services/editPageById.service";
+import { editPageById, getPageById } from "../services/editPageById.service";
 import { getPages } from "../services/getPages.services";
 
 export async function POST(req) {
@@ -36,12 +36,22 @@ export async function GET(req) {
   }
 }
 
-export async function PUT() {
-    try {
-        const result = await editPageById(); //Edita una pagina por ID
-        return NextResponse.json(result, { status: 200 });
-    } catch (error){
-        console.error("Error al procesar la solicitud:", error);
-        return NextResponse.json({ error: "Error al procesar la solicitud" }, { status: 500 });
+export async function PUT(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const idFromQuery = searchParams.get("id");
+    const body = await req.json().catch(() => ({}));
+    const id = body.id || idFromQuery;
+    if (!id) {
+      return NextResponse.json({ error: "Falta el id para actualizar" }, { status: 400 });
     }
+    // Garantizar que no se pierda el id
+    const dataToUpdate = { ...body, id };
+    const result = await editPageById(id, dataToUpdate);
+    console.log("Página actualizada", id, result.data);
+    return NextResponse.json(result, { status: 200 });
+  } catch (error) {
+    console.error("Error al procesar la solicitud:", error);
+    return NextResponse.json({ error: "Error al procesar la solicitud" }, { status: 500 });
+  }
 }

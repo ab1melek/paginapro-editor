@@ -10,21 +10,17 @@ const Editor = dynamic(() => import("../../../components/Editor"), {
   ssr: false,
 });
 
-const callEditorService = async (data) => {
+const callEditorService = async (data, isEditing) => {
   try {
-    const response = await fetch("/api/editor", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+    const method = isEditing ? "PUT" : "POST";
+    const url = isEditing ? `/api/editor?id=${data.id}` : "/api/editor";
+    const response = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-
-    if (response.ok) {
-      await response.json();
-    } else {
-      alert("Error al guardar los datos en el servidor");
-    }
+    if (!response.ok) throw new Error("Fallo en el guardado");
+    return await response.json();
   } catch (error) {
     console.error("Error al enviar los datos al servidor:", error);
     alert("Error al enviar los datos al servidor");
@@ -72,8 +68,10 @@ export default function EditorPage() {
           savedData.slug = slug; // Asignar el nombre ingresado
         }
 
-        console.log("Datos generados:", savedData);
-        await callEditorService(savedData);
+  // Si estamos editando, aseguramos que mantenga el id original
+  if (pageId) savedData.id = pageId;
+  console.log(pageId ? "Datos a actualizar:" : "Datos generados:", savedData);
+  await callEditorService(savedData, !!pageId);
         alert("Datos guardados correctamente");
       } catch (error) {
         console.error("Error al guardar los datos:", error);

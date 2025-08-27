@@ -16,8 +16,7 @@ const INITIAL_DATA = {
 
 const Editor = forwardRef(({ initialData }, ref) => {
   const editorRef = useRef(null);
-  const loadedRef = useRef(false); // evita render duplicado
-
+  const loadedRef = useRef(false);
   useEffect(() => {
     if (!editorRef.current) {
       const editor = new EditorJS({
@@ -28,7 +27,7 @@ const Editor = forwardRef(({ initialData }, ref) => {
       editorRef.current = editor;
       if (initialData) loadedRef.current = true;
     } else if (initialData && !loadedRef.current) {
-      // Si se carga después (porque se obtuvo async) renderizar una vez
+
       try {
         editorRef.current.render(initialData);
         loadedRef.current = true;
@@ -52,6 +51,9 @@ const Editor = forwardRef(({ initialData }, ref) => {
         // Preservar slug si venía en los datos iniciales (para no pedirlo de nuevo en ediciones)
         if (initialData?.slug && !savedData.slug) {
           savedData.slug = initialData.slug;
+        }
+        if (initialData?.id && !savedData.id) {
+          savedData.id = initialData.id;
         }
         return savedData;
       } catch (error) {
