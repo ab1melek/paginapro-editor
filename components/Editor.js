@@ -14,17 +14,27 @@ const INITIAL_DATA = {
   ],
 };
 
-const Editor = forwardRef((props, ref) => {
+const Editor = forwardRef(({ initialData }, ref) => {
   const editorRef = useRef(null);
+  const loadedRef = useRef(false); // evita render duplicado
 
   useEffect(() => {
     if (!editorRef.current) {
       const editor = new EditorJS({
         holder: "editorjs",
         tools: EDITOR_JS_TOOLS,
-        data: INITIAL_DATA,
+        data: initialData || INITIAL_DATA,
       });
       editorRef.current = editor;
+      if (initialData) loadedRef.current = true;
+    } else if (initialData && !loadedRef.current) {
+      // Si se carga después (porque se obtuvo async) renderizar una vez
+      try {
+        editorRef.current.render(initialData);
+        loadedRef.current = true;
+      } catch (e) {
+        console.warn("No se pudo renderizar initialData en EditorJS", e);
+      }
     }
 
     return () => {
@@ -39,6 +49,10 @@ const Editor = forwardRef((props, ref) => {
     if (editorRef.current) {
       try {
         const savedData = await editorRef.current.save();
+        // Preservar slug si venía en los datos iniciales (para no pedirlo de nuevo en ediciones)
+        if (initialData?.slug && !savedData.slug) {
+          savedData.slug = initialData.slug;
+        }
         return savedData;
       } catch (error) {
         console.error("Error al guardar los datos:", error);

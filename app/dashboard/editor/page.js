@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Button from "../../../components/Button";
 import styles from "./Editor.module.css";
 
@@ -35,6 +35,7 @@ export default function EditorPage() {
   const editorRef = useRef(null);
   const searchParams = useSearchParams();
   const pageId = searchParams.get("id");
+  const [initialData, setInitialData] = useState(null);
 
   // Solo leer y mostrar en consola los datos existentes si hay un id
   useEffect(() => {
@@ -44,7 +45,8 @@ export default function EditorPage() {
         const res = await fetch(`/api/editor?id=${pageId}`);
         if (res.ok) {
           const data = await res.json();
-            console.log("[Editor] Datos cargados para edición:", data); // Solo visualizar
+          console.log("[Editor] Datos cargados para edición:", data);
+          setInitialData(data);
         } else {
           console.warn("[Editor] No se pudo cargar la página", pageId);
         }
@@ -85,7 +87,7 @@ export default function EditorPage() {
   return (
     <main className={styles.main}>
       <h1>Editor 🚀</h1>
-      <Editor ref={editorRef} />
+  <Editor ref={editorRef} initialData={initialData} />
       <Button label="Guardar" onClick={handleSaveClick} className={styles.saveButton} />
     </main>
   );
