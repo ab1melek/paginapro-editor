@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef } from "react";
 import Button from "../../../components/Button";
 import styles from "./Editor.module.css";
 
@@ -32,6 +33,27 @@ const callEditorService = async (data) => {
 
 export default function EditorPage() {
   const editorRef = useRef(null);
+  const searchParams = useSearchParams();
+  const pageId = searchParams.get("id");
+
+  // Solo leer y mostrar en consola los datos existentes si hay un id
+  useEffect(() => {
+    const loadPage = async () => {
+      if (!pageId) return;
+      try {
+        const res = await fetch(`/api/editor?id=${pageId}`);
+        if (res.ok) {
+          const data = await res.json();
+            console.log("[Editor] Datos cargados para edición:", data); // Solo visualizar
+        } else {
+          console.warn("[Editor] No se pudo cargar la página", pageId);
+        }
+      } catch (e) {
+        console.error("[Editor] Error al cargar la página:", e);
+      }
+    };
+    loadPage();
+  }, [pageId]);
 
   const handleSaveClick = async () => {
     if (editorRef.current) {
