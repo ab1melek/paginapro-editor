@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createPage } from "../services/createPage.service";
 import { editPageById, getPageById } from "../services/editPageById.service";
+import { getPageBySlug } from "../services/getPageBySlug.service";
 import { getPages } from "../services/getPages.services";
 
 export async function POST(req) {
@@ -19,11 +20,19 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
+    const slug = searchParams.get("slug");
 
     if (id) {
-      // Obtener una página específica
+      // Obtener una página específica por id
   const page = await getPageById(id);
-  console.log("Página obtenida por ID", id, page); // <-- solo visualizar datos
+  console.log("Página obtenida por ID", id, page);
+  return NextResponse.json(page, { status: 200 });
+    } else if (slug) {
+        // Obtener una página especifica por slug
+      const page = await getPageBySlug(slug);
+  if (!page) {
+    return NextResponse.json({ error: "Página no encontrada" }, { status: 404 });
+  }
   return NextResponse.json(page, { status: 200 });
     } else {
       // Obtener todas las páginas
