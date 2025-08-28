@@ -84,9 +84,9 @@ export default function EditorPage() {
   
   return (
     <main className={styles.main}>
-      <h1>Editor 🚀</h1>
-  <Editor ref={editorRef} initialData={initialData} />
+      <Editor ref={editorRef} initialData={initialData} />
       <Button label="Guardar" onClick={handleSaveClick} className={styles.saveButton} />
+      <Button label="Dashboard" onClick={() => window.location.href = "/dashboard"} className={styles.dashboardButton} />
     </main>
   );
 }
