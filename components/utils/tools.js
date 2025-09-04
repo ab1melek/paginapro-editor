@@ -13,6 +13,8 @@ import SimpleImage from '@editorjs/simple-image'
 import Table from '@editorjs/table'
 import Warning from '@editorjs/warning'
 import ColorPicker from 'editorjs-color-picker'
+import FontEditorTool from '../editorPlugins/FontEditorTool'
+
 
 export const EDITOR_JS_TOOLS = {
   paragraph: {
@@ -38,7 +40,11 @@ export const EDITOR_JS_TOOLS = {
   },
   ColorPicker: {
       class: ColorPicker,
-    },
+   },
+  fontEditor: {
+    class: FontEditorTool,
+    inlineToolbar: true
+  },
   code: Code,
   inlineCode: InlineCode,
   embed: Embed,
