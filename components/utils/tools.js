@@ -12,6 +12,7 @@ import Raw from '@editorjs/raw'
 import SimpleImage from '@editorjs/simple-image'
 import Table from '@editorjs/table'
 import Warning from '@editorjs/warning'
+import ColorPicker from 'editorjs-color-picker'
 
 export const EDITOR_JS_TOOLS = {
   paragraph: {
@@ -35,6 +36,9 @@ export const EDITOR_JS_TOOLS = {
     class: Quote,
     inlineToolbar: true,
   },
+  ColorPicker: {
+      class: ColorPicker,
+    },
   code: Code,
   inlineCode: InlineCode,
   embed: Embed,

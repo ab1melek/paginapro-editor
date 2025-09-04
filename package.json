@@ -33,6 +33,7 @@
     "@editorjs/table": "^2.4.5",
     "@editorjs/warning": "^1.4.1",
     "dotenv": "^17.2.1",
+    "editorjs-color-picker": "^1.0.8",
     "editorjs-react-renderer": "^3.5.1",
     "next": "^15.4.7",
     "react": "^19.1.1",
