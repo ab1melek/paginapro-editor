@@ -3,6 +3,7 @@ import Code from '@editorjs/code'
 import Delimiter from '@editorjs/delimiter'
 import Embed from '@editorjs/embed'
 import Header from '@editorjs/header'
+import ImageTool from '@editorjs/image'
 import InlineCode from '@editorjs/inline-code'
 import List from '@editorjs/list'
 import Marker from '@editorjs/marker'
@@ -51,7 +52,19 @@ export const EDITOR_JS_TOOLS = {
   table: Table,
   warning: Warning,
   // linkTool: LinkTool,
-  // image: Image,
+  image: {
+    class: ImageTool,
+    config: {
+      endpoints: {
+        byFile: '/api/images', // Endpoint para subir imágenes por archivo
+      },
+      features: {
+        border: false,
+        caption: 'optional',
+        stretch: false,
+      },
+    },
+  },
   simpleImage: SimpleImage,
   raw: Raw,
   delimiter: Delimiter,
