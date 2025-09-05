@@ -69,3 +69,6 @@ typings/
 
 #ignorar los archivos de configuración de IDE
 JSON/*
+
+#ignorar los archivos de configuración de IDE
+public/*
