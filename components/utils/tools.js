@@ -1,3 +1,4 @@
+import Columns from "@aaaalrashd/editorjs-columns"
 import CheckList from '@editorjs/checklist'
 import Code from '@editorjs/code'
 import Delimiter from '@editorjs/delimiter'
@@ -79,4 +80,59 @@ export const EDITOR_JS_TOOLS = {
   raw: Raw,
   delimiter: Delimiter,
   marker: Marker,
+  columns: {
+        class: Columns,
+        config: {
+          maxColumns: 4,
+          tools: {
+            // Titulos (Headers)
+            header: {
+              class: Header,
+              inlineToolbar: true,
+              tunes: ["alignment"],
+              config: {
+                levels: [2, 3, 4],
+                defaultLevel: 2,
+              },
+            },
+            // Párrafos (Texto)
+            paragraph: {
+              class: Paragraph,
+              inlineToolbar: true,
+              tunes: ["alignment"],
+            },
+            // Imagenes
+            image: {
+              class: ImageTool,
+              config: {
+                endpoints: {
+                  byFile: '/api/images',
+                },
+                features: {
+                  border: false,
+                  caption: 'optional',
+                  stretch: false,
+                },
+              },
+            },
+            // Selector de color
+            ColorPicker: { class: ColorPicker },
+            // Editor de fuente (tamaños, estilos, etc.)
+            fontEditor: { class: FontEditorTool, inlineToolbar: true },
+            // Alineación (tune)
+            alignment: {
+              class: AlignmentTuneTool,
+              config: {
+                default: 'left',
+                blocks: {
+                  header: 'center',
+                  paragraph: 'left',
+                },
+              },
+            },
+            // Lista (lo mantenemos también disponible)
+            list: { class: List, inlineToolbar: true },
+          },
+        },
+      },
 }
