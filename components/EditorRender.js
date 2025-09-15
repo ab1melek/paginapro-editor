@@ -31,9 +31,17 @@ export default function EditorRender({ data }) {
         // data: { columns: 2, ratio: "1:1", blocks: [ [ {...}, {...} ], [ {...} ] ] }
         const nested = block.data?.blocks;
         if (!Array.isArray(nested)) return null;
-        const nonEmptyColumns = nested
+        let nonEmptyColumns = nested
           .map(col => (Array.isArray(col) ? col : (col?.blocks || [])))
           .filter(arr => Array.isArray(arr) && arr.length);
+        // Limitar sólo si excede 4, pero conservando 4 completas (fusionar extras en la última)
+        if (nonEmptyColumns.length > 4) {
+          const extra = nonEmptyColumns.slice(4).flat();
+          nonEmptyColumns = nonEmptyColumns.slice(0,4);
+          if (extra.length) {
+            nonEmptyColumns[3] = [...nonEmptyColumns[3], ...extra];
+          }
+        }
         if (!nonEmptyColumns.length) return null;
 
         // Calcular pesos por ratio (ej: "2:1" => [2,1])
@@ -45,7 +53,13 @@ export default function EditorRender({ data }) {
           });
         }
         if (weights.length !== nonEmptyColumns.length) {
-          weights = new Array(nonEmptyColumns.length).fill(1);
+          // Ajustar longitud de pesos; extender o recortar según columnas
+          if (weights.length > nonEmptyColumns.length) {
+            weights = weights.slice(0, nonEmptyColumns.length);
+          } else if (weights.length < nonEmptyColumns.length) {
+            const diff = nonEmptyColumns.length - weights.length;
+            weights = [...weights, ...new Array(diff).fill(1)];
+          }
         }
         const total = weights.reduce((a,b)=>a+b,0) || 1;
         return (
@@ -64,8 +78,9 @@ export default function EditorRender({ data }) {
                 key={idx}
                 style={{
                   flex: `${weights[idx]} 1 0` ,
+                  // Usar width flexible hasta 4 columnas; para tamaños pequeños permite wrap
                   maxWidth: `${(weights[idx]/total)*100}%`,
-                  minWidth: 220,
+                  minWidth: nonEmptyColumns.length === 4 ? 160 : 220,
                   display: "flex",
                   flexDirection: "column",
                   gap: ".5rem"
