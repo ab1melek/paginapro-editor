@@ -134,8 +134,8 @@ export const EDITOR_JS_TOOLS = {
                 },
               },
             },
-            // Lista (lo mantenemos también disponible)
             list: { class: List, inlineToolbar: true },
+            button: { class: ColorButtonTool },
           },
         },
       },
