@@ -1,0 +1,35 @@
+/* Estilos globales para botones usados por editorjs-button */
+
+.btn {
+  display: inline-block;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color .2s ease, color .2s ease, transform .15s ease;
+  border: 2px solid transparent;
+  padding: 10px 22px;
+  font-size: 15px;
+  line-height: 1.2;
+  font-family: inherit;
+}
+
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: translateY(0); }
+
+/* Variantes */
+.btn-primary { background:#3490dc; color:#fff; border-color:#3490dc; }
+.btn-primary:hover { background:#2779bd; border-color:#2779bd; }
+
+.btn-secondary { background:#6c757d; color:#fff; border-color:#6c757d; }
+.btn-secondary:hover { background:#5a6268; border-color:#5a6268; }
+
+.btn-outline { background:transparent; color:#3490dc; border-color:#3490dc; }
+.btn-outline:hover { background:rgba(52,144,220,.1); }
+
+.btn-text { background:transparent; color:#3490dc; border:none; padding:0; }
+.btn-text:hover { text-decoration:underline; transform:none; }
+
+/* Tamaños adicionales (si se necesitan en el futuro) */
+.btn-sm { padding:6px 14px; font-size:13px; }
+.btn-lg { padding:14px 30px; font-size:17px; }

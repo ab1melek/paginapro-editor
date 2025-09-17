@@ -25,6 +25,23 @@ export default function EditorRender({ data }) {
       : (rawAlign || "left");
 
     switch (block.type) {
+      case "button": {
+        const d = block.data || {};
+        const style = {
+          background: d.bgColor || '#3490dc',
+            color: d.textColor || '#fff',
+            display: 'inline-block',
+            padding: '10px 22px',
+            borderRadius: 6,
+            fontWeight:600,
+            textDecoration:'none'
+        };
+        return (
+          <div key={block.id} style={{ textAlign: d.align || 'left', margin: '0 0 1rem' }}>
+            <a href={d.link || '#'} style={style}>{d.text || 'Botón'}</a>
+          </div>
+        );
+      }
       case "columns": {
         // El plugin realmente guarda los bloques anidados en data.blocks (array de arrays)
         // y data.columns es solo el número de columnas. Ejemplo:

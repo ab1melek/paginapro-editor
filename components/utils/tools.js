@@ -15,6 +15,7 @@ import Table from '@editorjs/table'
 import Warning from '@editorjs/warning'
 import ColorPicker from 'editorjs-color-picker'
 import AlignmentTuneTool from "editorjs-text-alignment-blocktune"
+import ColorButtonTool from '../editorPlugins/ColorButtonTool'
 import FontEditorTool from '../editorPlugins/FontEditorTool'
 
 export const EDITOR_JS_TOOLS = {
@@ -80,6 +81,9 @@ export const EDITOR_JS_TOOLS = {
   raw: Raw,
   delimiter: Delimiter,
   marker: Marker,
+  button: {
+    class: ColorButtonTool,
+  },
   columns: {
         class: Columns,
         config: {
