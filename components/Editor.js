@@ -1,7 +1,8 @@
 "use client";
 
 import EditorJS from "@editorjs/editorjs";
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import DragDrop from 'editorjs-drag-drop';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { EDITOR_JS_TOOLS } from "./utils/tools.js";
 
 const INITIAL_DATA = {
@@ -17,17 +18,42 @@ const INITIAL_DATA = {
 const Editor = forwardRef(({ initialData }, ref) => {
   const editorRef = useRef(null);
   const loadedRef = useRef(false);
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const holderExists = document.getElementById("editorjs");
+    if (!holderExists) return;
+
     if (!editorRef.current) {
       const editor = new EditorJS({
         holder: "editorjs",
         tools: EDITOR_JS_TOOLS,
         data: initialData || INITIAL_DATA,
       });
+
       editorRef.current = editor;
+      // Activar DragDrop sólo cuando EditorJS termina su ciclo de inicialización
+      editor.isReady
+        .then(() => {
+          try {
+            new DragDrop(editorRef.current);
+            // console.debug('DragDrop inicializado');
+          } catch (ddErr) {
+            console.warn('Fallo al inicializar DragDrop', ddErr);
+          }
+        })
+        .catch((err) => {
+          console.warn('EditorJS no terminó de inicializarse', err);
+        });
+
       if (initialData) loadedRef.current = true;
     } else if (initialData && !loadedRef.current) {
-
       try {
         editorRef.current.render(initialData);
         loadedRef.current = true;
@@ -42,7 +68,7 @@ const Editor = forwardRef(({ initialData }, ref) => {
         editorRef.current = null;
       }
     };
-  }, []);
+  }, [mounted]);
 
   const handleSave = async () => {
     if (editorRef.current) {

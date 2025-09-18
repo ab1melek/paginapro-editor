@@ -37,6 +37,7 @@
     "dotenv": "^17.2.1",
     "editorjs-button": "^3.0.3",
     "editorjs-color-picker": "^1.0.8",
+    "editorjs-drag-drop": "^1.1.16",
     "editorjs-react-renderer": "^3.5.1",
     "editorjs-text-alignment-blocktune": "^1.0.3",
     "next": "^15.4.7",
