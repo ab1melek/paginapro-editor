@@ -44,3 +44,28 @@ If you edit this file
 - Keep it short. Update examples with exact filenames and small code excerpts only when necessary.
 
 End of instructions.
+
+Preview responsive (desktop / tablet / móvil)
+------------------------------------------
+- El proyecto incluye una vista de "preview" para revisar cómo queda el contenido del editor en Desktop, Tablet y Móvil.
+- Flujo de borradores en preview: el editor puede guardar un borrador en `sessionStorage` bajo la clave `preview-<timestamp>`; la ruta de preview acepta `previewKey` (para cargar el borrador) o `id` (para cargar una página guardada). El componente cliente `components/PreviewLoader.js` carga el borrador desde `sessionStorage` cuando `previewKey` está presente y permite volver a la edición pasando de nuevo el `previewKey` al editor.
+- Diferencia cliente/servidor: El preview usa un renderer cliente (`components/EditorRender.js`) para permitir interactividad y mostrar cómo Editor.js renderiza en el navegador. Las páginas publicadas siguen usando un renderer servidor (`components/EditorRender.server.js`) para mantener HTML server-side y preservar SEO.
+- Columnas y mobile: Para que el preview y la página publicada coincidan en móvil, las columnas se apilan en pantallas pequeñas. Esto se implementó con una lógica compartida de cálculo de pesos/columnas en `components/utils/editorRender.js` y estilos scoped (`@media (max-width:480px)`) inyectados por el renderer servidor para garantizar que la versión publicada también muestre columnas apiladas en móviles.
+- Device switcher: `components/PreviewGrid.js` ofrece un selector de dispositivo (Desktop/Tablet/Móvil). El modo Desktop renderiza la página como en producción (contenedor centrado con `padding: 32px` y `maxWidth: 700px`) para conseguir paridad visual.
+
+Notas prácticas para COPILOT / agentes:
+- Si implementas cambios que afecten el renderizado de bloques (especialmente `columns`), actualiza `components/utils/editorRender.js` y asegúrate de modificar tanto `EditorRender.js` (cliente) como `EditorRender.server.js` (servidor) para mantener comportamiento idéntico.
+- Para previsualizar borradores en el editor: invoca `editorRef.current.save()` en el cliente, guarda el resultado en `sessionStorage` con una clave `preview-<timestamp>`, y redirige a `/dashboard/editor/preview?previewKey=preview-<timestamp>&id=<id?>`.
+- No rompas la persistencia JSON: las APIs y servicios siguen la convención de leer/escribir archivos JSON como arrays con un solo objeto (ej. `JSON.stringify([data], null, 2)`). Mantén ese formato cuando modifiques `app/api/services/*.js`.
+- Mantén límites de compatibilidad: no introduzcas imports cliente-only (`'use client'` o dynamic imports con `ssr: false`) dentro de Server Components; en su lugar, crea componentes cliente separados (`components/PreviewLoader.js`, `components/PreviewGrid.js`).
+
+Ejemplos rápidos:
+- Guardar y abrir preview (cliente):
+	1. `const data = await editorRef.current.save();`
+	2. `const key = 'preview-' + Date.now();`
+	3. `sessionStorage.setItem(key, JSON.stringify(data));`
+	4. `router.push(`/dashboard/editor/preview?previewKey=${key}&id=${data.id || ''}`);`
+
+- Cargar preview (cliente): `components/PreviewLoader.js` busca `previewKey` en la query, carga `sessionStorage.getItem(previewKey)` si existe, o hace `fetch('/api/editor?id=...')` si solo hay `id`.
+
+Fin de adiciones sobre preview responsive.
