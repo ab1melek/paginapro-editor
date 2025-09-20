@@ -31,11 +31,27 @@ export default function EditorPage() {
   const editorRef = useRef(null);
   const searchParams = useSearchParams();
   const pageId = searchParams.get("id");
+  const previewKey = searchParams.get("previewKey");
   const [initialData, setInitialData] = useState(null);
 
   // Solo leer y mostrar en consola los datos existentes si hay un id
   useEffect(() => {
     const loadPage = async () => {
+      // Priorizar borrador en sessionStorage si viene previewKey
+      if (previewKey && typeof window !== "undefined") {
+        try {
+          const raw = sessionStorage.getItem(previewKey);
+          if (raw) {
+            const data = JSON.parse(raw);
+            console.log("[Editor] Cargando borrador desde previewKey:", previewKey);
+            setInitialData(data);
+            return;
+          }
+        } catch (e) {
+          console.warn("[Editor] No se pudo leer previewKey:", e);
+        }
+      }
+
       if (!pageId) return;
       try {
         const res = await fetch(`/api/editor?id=${pageId}`);
@@ -51,7 +67,7 @@ export default function EditorPage() {
       }
     };
     loadPage();
-  }, [pageId]);
+  }, [pageId, previewKey]);
 
   const handleSaveClick = async () => {
     if (editorRef.current) {
@@ -80,12 +96,37 @@ export default function EditorPage() {
     }
   };
 
+  const handlePreviewClick = async () => {
+    if (!editorRef.current) return;
+    try {
+      const savedData = await editorRef.current.save();
+      // Guardar borrador temporal en sessionStorage
+      const key = `preview-${Date.now()}`;
+      try {
+        sessionStorage.setItem(key, JSON.stringify(savedData));
+      } catch (e) {
+        console.warn("No se pudo guardar preview en sessionStorage:", e);
+      }
+      // Redirigir al preview incluyendo previewKey y opcionalmente id
+      const url = pageId
+        ? `/dashboard/editor/preview?id=${pageId}&previewKey=${key}`
+        : `/dashboard/editor/preview?previewKey=${key}`;
+      window.location.href = url;
+    } catch (e) {
+      console.error("Error al generar preview:", e);
+      alert("No se pudo generar el preview. Intenta guardar primero.");
+    }
+  };
+
 
   
   return (
     <main className={styles.main}>
       <Editor ref={editorRef} initialData={initialData} />
-      <Button label="Guardar" onClick={handleSaveClick} className={styles.saveButton} />
+      <div className={styles.actionsBar}>
+        <Button label="Preview" onClick={handlePreviewClick} className={styles.actionButton} />
+        <Button label="Guardar" onClick={handleSaveClick} className={styles.actionButton} />
+      </div>
       <Button label="Dashboard" onClick={() => window.location.href = "/dashboard"} className={styles.dashboardButton} />
     </main>
   );

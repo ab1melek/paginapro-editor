@@ -11,7 +11,7 @@ function normalize(data) {
   return { blocks: [] };
 }
 
-export default function EditorRender({ data }) {
+export default function EditorRender({ data, device }) {
   const { blocks } = normalize(data);
 
   if (!blocks.length) return <p style={{ opacity:.7 }}>Sin contenido</p>;
@@ -60,6 +60,28 @@ export default function EditorRender({ data }) {
           }
         }
         if (!nonEmptyColumns.length) return null;
+
+        // If preview requests mobile, stack columns vertically for faithful mobile rendering
+        if (device === 'mobile') {
+          return (
+            <div key={block.id} style={{ display: 'block', margin: '1rem 0' }}>
+              {nonEmptyColumns.map((colBlocks, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '.5rem',
+                    marginBottom: '1rem'
+                  }}
+                >
+                  {(colBlocks || []).map(inner => renderBlock(inner))}
+                </div>
+              ))}
+            </div>
+          );
+        }
 
         // Calcular pesos por ratio (ej: "2:1" => [2,1])
         let weights = [];
