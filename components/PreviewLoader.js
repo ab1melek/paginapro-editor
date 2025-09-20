@@ -58,15 +58,19 @@ export default function PreviewLoader({ id, previewKey }) {
         <button
           onClick={backToEditor}
           style={{
-            padding: "8px 12px",
+            padding: '8px 12px',
             borderRadius: 6,
-            border: "1px solid #ddd",
-            background: "#fff",
-            color: "#222",
-            cursor: "pointer",
+            border: '1px solid #ddd',
+            background: '#fff',
+            color: '#222',
+            cursor: 'pointer',
             fontWeight: 400,
             fontFamily: "Georgia, 'Times New Roman', serif",
-            boxShadow: "inset 0 -1px 0 #f1f1f1",
+            boxShadow: 'inset 0 -1px 0 #f1f1f1',
+            fontSize: 16,
+            minWidth: 120,
+            display: 'inline-block',
+            textAlign: 'center'
           }}
         >
           Volver a edición

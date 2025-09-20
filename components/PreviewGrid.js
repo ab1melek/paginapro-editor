@@ -96,18 +96,35 @@ export default function PreviewGrid({ pageData }) {
             Mobile
           </button>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <select
-            value={orientation}
-            onChange={(e) => setOrientation(e.target.value)}
-            style={{ padding: 8, borderRadius: 6 }}
-          >
-            <option value="portrait">Portrait</option>
-            <option value="landscape">Landscape</option>
-          </select>
-        </div>
+        {/* Orientation control - only relevant for mobile */}
+        {device === 'mobile' && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <select
+              value={orientation}
+              onChange={(e) => setOrientation(e.target.value)}
+              style={{
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  border: '1px solid #ddd',
+                  background: '#fff',
+                  boxShadow: 'inset 0 -1px 0 #f1f1f1',
+                  fontFamily: "Georgia, 'Times New Roman', serif",
+                  fontSize: 16,
+                  color: '#222',
+                  appearance: 'none',
+                  WebkitAppearance: 'none',
+                  MozAppearance: 'none',
+                  cursor: 'pointer',
+                  minWidth: 120,
+                }}
+            >
+              <option value="portrait">Portrait</option>
+              <option value="landscape">Landscape</option>
+            </select>
+          </div>
+        )}
         <div style={{ marginLeft: "auto", opacity: 0.75, fontSize: 13 }}>
-          {meta.label} {orientation === "portrait" ? "P" : "L"} · {effective.width}px
+          {meta.label} {device === 'mobile' ? (orientation === "portrait" ? "P" : "L") : ''} {device === 'mobile' ? '·' : ''} {device === 'mobile' ? effective.width + 'px' : ''}
         </div>
       </div>
 
