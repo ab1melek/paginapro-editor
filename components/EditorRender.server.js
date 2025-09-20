@@ -1,14 +1,13 @@
-"use client";
+// Server-side renderer for Editor.js data
+// This file is safe for SSR and will be used by published pages for SEO.
 
-// Render sin depender de editorjs-react-renderer para asegurar alineaciones
 import { calcWeights, getNonEmptyColumns, makeContainerClass, normalize } from './utils/editorRender';
 
-export default function EditorRender({ data, device }) {
+export default function EditorRenderServer({ data }) {
   const { blocks } = normalize(data);
 
-  if (!blocks.length) return <p style={{ opacity:.7 }}>Sin contenido</p>;
+  if (!blocks.length) return <p style={{ opacity: 0.7 }}>Sin contenido</p>;
 
-  // Renderizador recursivo para soportar bloques anidados (e.g. columns)
   const renderBlock = (block) => {
     if (!block) return null;
     const rawAlign = block.tunes?.alignment?.alignment;
@@ -34,61 +33,26 @@ export default function EditorRender({ data, device }) {
           </div>
         );
       }
+
       case "columns": {
-        // El plugin realmente guarda los bloques anidados en data.blocks (array de arrays)
-        // y data.columns es solo el número de columnas. Ejemplo:
-        // data: { columns: 2, ratio: "1:1", blocks: [ [ {...}, {...} ], [ {...} ] ] }
         const nested = block.data?.blocks;
         if (!Array.isArray(nested)) return null;
         const nonEmptyColumns = getNonEmptyColumns(nested);
         if (!nonEmptyColumns.length) return null;
 
-        // If preview requests mobile, stack columns vertically for faithful mobile rendering
-        if (device === 'mobile') {
-          return (
-            <div key={block.id} style={{ display: 'block', margin: '1rem 0' }}>
-              {nonEmptyColumns.map((colBlocks, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '.5rem',
-                    marginBottom: '1rem'
-                  }}
-                >
-                  {(colBlocks || []).map(inner => renderBlock(inner))}
-                </div>
-              ))}
-            </div>
-          );
-        }
-
         const { weights, total } = calcWeights(block, nonEmptyColumns);
         const containerClass = makeContainerClass(block.id);
 
         return (
-          <div
-            key={block.id}
-            className={containerClass}
-            style={{
-              display: "flex",
-              gap: "1rem",
-              flexWrap: "wrap",
-              alignItems: "flex-start",
-              margin: "1rem 0"
-            }}
-          >
-            {/* Scoped style to force stacking on small screens */}
+          <div key={block.id} className={containerClass} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start', margin: '1rem 0' }}>
+            {/* Scoped style to force stacking on small screens for published pages (SEO-safe) */}
             <style>{`@media (max-width:480px) { .${containerClass} > .editor-column { flex: 0 0 100% !important; max-width: 100% !important; } }`}</style>
             {nonEmptyColumns.map((colBlocks, idx) => (
               <div
                 key={idx}
                 className="editor-column"
                 style={{
-                  flex: `${weights[idx]} 1 0` ,
-                  // Usar width flexible hasta 4 columnas; para tamaños pequeños permite wrap
+                  flex: `${weights[idx]} 1 0`,
                   maxWidth: `${(weights[idx]/total)*100}%`,
                   minWidth: nonEmptyColumns.length === 4 ? 160 : 220,
                   display: "flex",
