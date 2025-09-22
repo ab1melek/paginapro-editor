@@ -29,7 +29,7 @@ export const EDITOR_JS_TOOLS = {
     inlineToolbar: true,
     tunes: ["alignment"],
     config: {
-      levels: [2, 3, 4],
+      levels: [1, 2, 3, 4],
       defaultLevel: 2, 
     },
   },
@@ -95,7 +95,7 @@ export const EDITOR_JS_TOOLS = {
               inlineToolbar: true,
               tunes: ["alignment"],
               config: {
-                levels: [2, 3, 4],
+                levels: [1, 2, 3, 4],
                 defaultLevel: 2,
               },
             },
