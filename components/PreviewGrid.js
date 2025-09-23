@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+import { hasFourColumnsInBlocks, normalize } from './utils/editorRender';
 
 const EditorRender = dynamic(() => import("./EditorRender"), { ssr: false });
 
@@ -34,9 +35,12 @@ export default function PreviewGrid({ pageData }) {
     overflowY: "auto",
     overflowX: "hidden",
     position: "relative",
-    transition: "width .25s ease, min-height .25s ease",
     margin: "1rem 0",
   };
+
+  // Detectar si hay 4 columnas para ajustar ancho en Desktop preview
+  const { blocks } = normalize(pageData);
+  const wantWide = hasFourColumnsInBlocks(blocks);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -133,7 +137,7 @@ export default function PreviewGrid({ pageData }) {
         {/* If desktop, render a centered full-page container (mimic public page) */}
         {device === 'desktop' ? (
           // Render same layout as public ReadOnlyPage: centered main with padding 32 and maxWidth 700
-          <main style={{ padding: 32, maxWidth: 700, margin: '0 auto', width: '100%' }}>
+          <main style={{ padding: 32, maxWidth: wantWide ? 900 : 700, margin: '0 auto', width: '100%' }}>
             <EditorRender data={pageData} device={device} />
           </main>
         ) : (

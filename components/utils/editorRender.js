@@ -1,13 +1,30 @@
 // Utilities shared between client and server EditorRender implementations
 
 export function normalize(data) {
-  if (!data) return { blocks: [] };
-  if (data.blocks) return data;
+  // Resultado por defecto compatible
+  const fallback = { blocks: [], pageSettings: {} };
+  if (!data) return fallback;
+
+  // Si ya viene con blocks (objeto raíz)
+  if (data.blocks) {
+    return {
+      blocks: data.blocks || [],
+      pageSettings: data.pageSettings || {},
+    };
+  }
+
+  // Si nos pasan el array wrapper [obj]
   if (Array.isArray(data)) {
     const first = data[0];
-    if (first?.blocks) return first;
+    if (first?.blocks) {
+      return {
+        blocks: first.blocks || [],
+        pageSettings: first.pageSettings || {},
+      };
+    }
   }
-  return { blocks: [] };
+
+  return fallback;
 }
 
 export function getNonEmptyColumns(nested) {
@@ -45,4 +62,15 @@ export function calcWeights(block, nonEmptyColumns) {
 
 export function makeContainerClass(blockId) {
   return `editor-columns-${blockId}`;
+}
+
+export function hasFourColumnsInBlocks(blocks) {
+  if (!Array.isArray(blocks)) return false;
+  return blocks.some(b => {
+    if (!b || b.type !== 'columns') return false;
+    const nested = b.data?.blocks;
+    if (!Array.isArray(nested)) return false;
+    const nonEmpty = getNonEmptyColumns(nested);
+    return nonEmpty.length === 4;
+  });
 }

@@ -1,15 +1,39 @@
 "use client";
 
 // Render sin depender de editorjs-react-renderer para asegurar alineaciones
-import { calcWeights, getNonEmptyColumns, makeContainerClass, normalize } from './utils/editorRender';
+import { useEffect } from 'react';
+import { calcWeights, getNonEmptyColumns, hasFourColumnsInBlocks, makeContainerClass, normalize } from './utils/editorRender';
 
 export default function EditorRender({ data, device }) {
-  const { blocks } = normalize(data);
+  const { blocks, pageSettings } = normalize(data);
+
+  // Aplicar estilos globales cuando existe pageSettings (sólo en cliente)
+  useEffect(() => {
+    if (!pageSettings) return;
+    try {
+      if (document?.body && pageSettings.backgroundColor) {
+        document.body.style.backgroundColor = pageSettings.backgroundColor;
+      }
+      const mainContainer = document?.querySelector('.editor-content-container');
+      if (mainContainer) {
+        if (pageSettings.containerBackgroundColor) {
+          mainContainer.style.backgroundColor = pageSettings.containerBackgroundColor;
+        }
+        if (typeof pageSettings.containerOpacity === 'number') {
+          mainContainer.style.opacity = pageSettings.containerOpacity;
+        }
+      }
+    } catch {}
+    return () => {
+      // limpiar estilos sólo del body para no interferir con otras vistas
+      try { if (document?.body) document.body.style.backgroundColor = ''; } catch {}
+    };
+  }, [pageSettings?.backgroundColor, pageSettings?.containerBackgroundColor, pageSettings?.containerOpacity]);
 
   if (!blocks.length) return <p style={{ opacity:.7 }}>Sin contenido</p>;
 
   // Renderizador recursivo para soportar bloques anidados (e.g. columns)
-  const renderBlock = (block) => {
+  const renderBlock = (block, insideColumn = false) => {
     if (!block) return null;
     const rawAlign = block.tunes?.alignment?.alignment;
     const align = block.type === "image"
@@ -17,6 +41,10 @@ export default function EditorRender({ data, device }) {
       : (rawAlign || "left");
 
     switch (block.type) {
+      case "pageSettings": {
+        // Bloque de control visual, no se renderiza como contenido
+        return null;
+      }
       case "button": {
         const d = block.data || {};
         const style = {
@@ -28,8 +56,10 @@ export default function EditorRender({ data, device }) {
             fontWeight:600,
             textDecoration:'none'
         };
+        const wrapperStyle = { textAlign: d.align || 'left', margin: '0 0 1rem' };
+        if (insideColumn) wrapperStyle.marginTop = 'auto';
         return (
-          <div key={block.id} style={{ textAlign: d.align || 'left', margin: '0 0 1rem' }}>
+          <div key={block.id} style={wrapperStyle}>
             <a href={d.link || '#'} style={style}>{d.text || 'Botón'}</a>
           </div>
         );
@@ -55,10 +85,14 @@ export default function EditorRender({ data, device }) {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '.5rem',
-                    marginBottom: '1rem'
+                    marginBottom: '1rem',
+                    background: block.tunes?.columnsStyle?.backgrounds?.[idx]?.color || 'transparent',
+                    opacity: typeof block.tunes?.columnsStyle?.backgrounds?.[idx]?.opacity === 'number' ? block.tunes.columnsStyle.backgrounds[idx].opacity : undefined,
+                    borderRadius: 4,
+                    padding: block.tunes?.columnsStyle?.backgrounds?.[idx]?.color ? '8px' : undefined,
                   }}
                 >
-                  {(colBlocks || []).map(inner => renderBlock(inner))}
+                  {(colBlocks || []).map(inner => renderBlock(inner, true))}
                 </div>
               ))}
             </div>
@@ -75,8 +109,8 @@ export default function EditorRender({ data, device }) {
             style={{
               display: "flex",
               gap: "1rem",
-              flexWrap: "wrap",
-              alignItems: "flex-start",
+              flexWrap: 'wrap',
+              alignItems: "stretch",
               margin: "1rem 0"
             }}
           >
@@ -90,13 +124,16 @@ export default function EditorRender({ data, device }) {
                   flex: `${weights[idx]} 1 0` ,
                   // Usar width flexible hasta 4 columnas; para tamaños pequeños permite wrap
                   maxWidth: `${(weights[idx]/total)*100}%`,
-                  minWidth: nonEmptyColumns.length === 4 ? 160 : 220,
+                  minWidth: nonEmptyColumns.length === 4 ? 170 : 220,
                   display: "flex",
                   flexDirection: "column",
-                  gap: ".5rem"
+                  gap: ".6rem",
+                  background: block.tunes?.columnsStyle?.backgrounds?.[idx]?.color || 'transparent',
+                  borderRadius: 6,
+                  padding: block.tunes?.columnsStyle?.backgrounds?.[idx]?.color ? '10px' : undefined,
                 }}
               >
-                {(colBlocks || []).map(inner => renderBlock(inner))}
+                {(colBlocks || []).map(inner => renderBlock(inner, true))}
               </div>
             ))}
           </div>
@@ -229,9 +266,14 @@ export default function EditorRender({ data, device }) {
     }
   };
 
+  const containerMax = hasFourColumnsInBlocks(blocks) ? Math.max(pageSettings?.maxWidth || 900, 900) : (pageSettings?.maxWidth || 700);
+
   return (
-    <div>
-      {blocks.map(renderBlock)}
+    <div
+      className="editor-content-container"
+      style={{ padding: 32, maxWidth: containerMax, margin: '0 auto' }}
+    >
+      {blocks.map(b => renderBlock(b, false))}
     </div>
   );
 }

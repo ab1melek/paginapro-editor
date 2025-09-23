@@ -1,14 +1,14 @@
 // Server-side renderer for Editor.js data
 // This file is safe for SSR and will be used by published pages for SEO.
 
-import { calcWeights, getNonEmptyColumns, makeContainerClass, normalize } from './utils/editorRender';
+import { calcWeights, getNonEmptyColumns, hasFourColumnsInBlocks, makeContainerClass, normalize } from './utils/editorRender';
 
 export default function EditorRenderServer({ data }) {
-  const { blocks } = normalize(data);
+  const { blocks, pageSettings } = normalize(data);
 
   if (!blocks.length) return <p style={{ opacity: 0.7 }}>Sin contenido</p>;
 
-  const renderBlock = (block) => {
+  const renderBlock = (block, insideColumn = false) => {
     if (!block) return null;
     const rawAlign = block.tunes?.alignment?.alignment;
     const align = block.type === "image"
@@ -16,6 +16,10 @@ export default function EditorRenderServer({ data }) {
       : (rawAlign || "left");
 
     switch (block.type) {
+      case "pageSettings": {
+        // Bloque de control visual, no se renderiza como contenido
+        return null;
+      }
       case "button": {
         const d = block.data || {};
         const style = {
@@ -27,8 +31,10 @@ export default function EditorRenderServer({ data }) {
             fontWeight:600,
             textDecoration:'none'
         };
+        const wrapperStyle = { textAlign: d.align || 'left', margin: '0 0 1rem' };
+        if (insideColumn) wrapperStyle.marginTop = 'auto';
         return (
-          <div key={block.id} style={{ textAlign: d.align || 'left', margin: '0 0 1rem' }}>
+          <div key={block.id} style={wrapperStyle}>
             <a href={d.link || '#'} style={style}>{d.text || 'Botón'}</a>
           </div>
         );
@@ -40,11 +46,11 @@ export default function EditorRenderServer({ data }) {
         const nonEmptyColumns = getNonEmptyColumns(nested);
         if (!nonEmptyColumns.length) return null;
 
-        const { weights, total } = calcWeights(block, nonEmptyColumns);
-        const containerClass = makeContainerClass(block.id);
+          const { weights, total } = calcWeights(block, nonEmptyColumns);
+          const containerClass = makeContainerClass(block.id);
 
-        return (
-          <div key={block.id} className={containerClass} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start', margin: '1rem 0' }}>
+          return (
+            <div key={block.id} className={containerClass} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'stretch', margin: '1rem 0' }}>
             {/* Scoped style to force stacking on small screens for published pages (SEO-safe) */}
             <style>{`@media (max-width:480px) { .${containerClass} > .editor-column { flex: 0 0 100% !important; max-width: 100% !important; } }`}</style>
             {nonEmptyColumns.map((colBlocks, idx) => (
@@ -54,13 +60,17 @@ export default function EditorRenderServer({ data }) {
                 style={{
                   flex: `${weights[idx]} 1 0`,
                   maxWidth: `${(weights[idx]/total)*100}%`,
-                  minWidth: nonEmptyColumns.length === 4 ? 160 : 220,
+                  minWidth: nonEmptyColumns.length === 4 ? 170 : 220,
                   display: "flex",
                   flexDirection: "column",
-                  gap: ".5rem"
+                  gap: ".6rem",
+                  background: block.tunes?.columnsStyle?.backgrounds?.[idx]?.color || 'transparent',
+                    opacity: typeof block.tunes?.columnsStyle?.backgrounds?.[idx]?.opacity === 'number' ? block.tunes.columnsStyle.backgrounds[idx].opacity : undefined,
+                    borderRadius: 6,
+                    padding: block.tunes?.columnsStyle?.backgrounds?.[idx]?.color ? '10px' : undefined,
                 }}
               >
-                {(colBlocks || []).map(inner => renderBlock(inner))}
+                {(colBlocks || []).map(inner => renderBlock(inner, true))}
               </div>
             ))}
           </div>
@@ -193,9 +203,24 @@ export default function EditorRenderServer({ data }) {
     }
   };
 
+  const buildStyles = () => {
+    if (!pageSettings) return '';
+    let css = '';
+    if (pageSettings.backgroundColor) css += `body{background-color:${pageSettings.backgroundColor};}`;
+    if (pageSettings.containerBackgroundColor) {
+      css += `.editor-content-container{background-color:${pageSettings.containerBackgroundColor};}`;
+    }
+    return css;
+  };
+
+  const containerMax = hasFourColumnsInBlocks(blocks) ? Math.max(pageSettings?.maxWidth || 900, 900) : (pageSettings?.maxWidth || 700);
+
   return (
-    <div>
-      {blocks.map(renderBlock)}
-    </div>
+    <>
+      {buildStyles() ? <style dangerouslySetInnerHTML={{ __html: buildStyles() }} /> : null}
+      <div className="editor-content-container" style={{ padding: 32, maxWidth: containerMax, margin: '0 auto' }}>
+        {blocks.map(b => renderBlock(b, false))}
+      </div>
+    </>
   );
 }

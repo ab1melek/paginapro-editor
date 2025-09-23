@@ -33,6 +33,7 @@ export default function EditorPage() {
   const pageId = searchParams.get("id");
   const previewKey = searchParams.get("previewKey");
   const [initialData, setInitialData] = useState(null);
+  const [pageStyle, setPageStyle] = useState({ backgroundColor: '#ffffff', containerBackgroundColor: '#ffffff' });
 
   // Solo leer y mostrar en consola los datos existentes si hay un id
   useEffect(() => {
@@ -59,6 +60,13 @@ export default function EditorPage() {
           const data = await res.json();
           console.log("[Editor] Datos cargados para edición:", data);
           setInitialData(data);
+          try {
+            const ps = (Array.isArray(data) ? data[0]?.pageSettings : data?.pageSettings) || {};
+            setPageStyle({
+              backgroundColor: ps.backgroundColor || '#ffffff',
+              containerBackgroundColor: ps.containerBackgroundColor || '#ffffff',
+            });
+          } catch {}
         } else {
           console.warn("[Editor] No se pudo cargar la página", pageId);
         }
@@ -68,6 +76,30 @@ export default function EditorPage() {
     };
     loadPage();
   }, [pageId, previewKey]);
+
+  // Aplicar estilos inmediatos al cambiar pageStyle (modo edición)
+  useEffect(() => {
+    try {
+      if (typeof document !== 'undefined') {
+        if (pageStyle?.backgroundColor) document.body.style.backgroundColor = pageStyle.backgroundColor;
+      }
+    } catch {}
+  }, [pageStyle?.backgroundColor]);
+
+  const updatePageSettings = (partial) => {
+    setPageStyle((prev) => {
+      const next = { ...prev, ...partial };
+      // Propagar a initialData para que Editor.save() lo preserve en el root
+      setInitialData((prevData) => {
+        if (!prevData) return prevData;
+        const root = Array.isArray(prevData) ? (prevData[0] || {}) : (prevData || {});
+        // Solo persistir backgroundColor y containerBackgroundColor para evitar maxWidth
+        const updated = { ...root, pageSettings: { ...(root.pageSettings || {}), backgroundColor: next.backgroundColor, containerBackgroundColor: next.containerBackgroundColor } };
+        return Array.isArray(prevData) ? [updated] : updated;
+      });
+      return next;
+    });
+  };
 
   const handleSaveClick = async () => {
     if (editorRef.current) {
@@ -122,12 +154,41 @@ export default function EditorPage() {
   
   return (
     <main className={styles.main}>
-      <Editor ref={editorRef} initialData={initialData} />
-      <div className={styles.actionsBar}>
-        <Button label="Preview" onClick={handlePreviewClick} className={styles.actionButton} />
-        <Button label="Guardar" onClick={handleSaveClick} className={styles.actionButton} />
+      {/* Barra superior de estilos */}
+      <div className={styles.styleBar}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-start', width: '20%' }}>
+          <Button label="Dashboard" onClick={() => window.location.href = "/dashboard"} className={styles.actionButton} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center', width: '60%' }}>
+          <div className={styles.styleControl}>
+            <label>Color Fondo</label>
+            <input
+              type="color"
+              value={pageStyle.backgroundColor || '#ffffff'}
+              onChange={(e) => updatePageSettings({ backgroundColor: e.target.value })}
+            />
+          </div>
+          <div className={styles.styleControl}>
+            <label>Color Página</label>
+            <input
+              type="color"
+              value={pageStyle.containerBackgroundColor || '#ffffff'}
+              onChange={(e) => updatePageSettings({ containerBackgroundColor: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end', width: '20%' }}>
+          <Button label="Preview" onClick={handlePreviewClick} className={styles.actionButton} />
+          <Button label="Guardar" onClick={handleSaveClick} className={styles.actionButton} />
+        </div>
       </div>
-      <Button label="Dashboard" onClick={() => window.location.href = "/dashboard"} className={styles.dashboardButton} />
+
+      {/* Canvas del editor con fondo aplicado */}
+      <div className={styles.editorCanvas} style={{ margin: '0 auto', backgroundColor: pageStyle.containerBackgroundColor || '#ffffff', padding: '0 16px', borderRadius: 6 }}>
+        <Editor ref={editorRef} initialData={initialData} />
+      </div>
     </main>
   );
 }

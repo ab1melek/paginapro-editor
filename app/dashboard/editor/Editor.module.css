@@ -48,3 +48,64 @@
 .editor {
     margin-top: 50px; /* Simula el espacio que ocuparía un h1 */
 }
+
+/* Barra superior de estilos (fondo y ancho) */
+.styleBar {
+    position: sticky;
+    top: 8px;
+    z-index: 10;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(6px);
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 8px auto 16px;
+    max-width: 1200px;
+    width: calc(100% - 48px);
+    box-sizing: border-box;
+}
+
+.styleControl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.styleControl label {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.editorCanvas {
+    padding-bottom: 24px;
+}
+
+/* Ajustes para los botones en la barra superior */
+.styleBar .actionButton {
+    min-width: auto;
+    padding: 8px 12px;
+}
+
+/* Slider style */
+.styleBar input[type="range"] {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 6px;
+    background: #e6e6e6;
+    border-radius: 999px;
+    outline: none;
+}
+.styleBar input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #2e7d32;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(46,125,50,0.15);
+}
+
+/* Transiciones suavizadas removidas: anteriormente aquí se aplicaba transition a
+   .editor-content-container y .editorCanvas, se eliminó porque causaba problemas */

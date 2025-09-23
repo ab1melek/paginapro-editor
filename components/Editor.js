@@ -7,6 +7,11 @@ import { EDITOR_JS_TOOLS } from "./utils/tools.js";
 
 const INITIAL_DATA = {
   time: new Date().getTime(),
+  pageSettings: {
+    backgroundColor: '#ffffff',
+    containerBackgroundColor: '#ffffff',
+    containerOpacity: 1,
+  },
   blocks: [
     {
       type: "paragraph",
@@ -81,6 +86,23 @@ const Editor = forwardRef(({ initialData }, ref) => {
         if (initialData?.id && !savedData.id) {
           savedData.id = initialData.id;
         }
+        // Si el bloque pageSettings está presente, promover sus datos al root para facilitar render SSR/cliente
+        // Buscamos un bloque de tipo 'pageSettings' y copiamos su data a savedData.pageSettings
+        try {
+          const psBlock = Array.isArray(savedData?.blocks)
+            ? savedData.blocks.find(b => b?.type === 'pageSettings')
+            : null;
+          if (psBlock?.data && typeof psBlock.data === 'object') {
+            savedData.pageSettings = {
+              backgroundColor: psBlock.data.backgroundColor ?? initialData?.pageSettings?.backgroundColor ?? '#ffffff',
+              containerBackgroundColor: psBlock.data.containerBackgroundColor ?? initialData?.pageSettings?.containerBackgroundColor ?? '#ffffff',
+              containerOpacity: typeof psBlock.data.containerOpacity === 'number' ? psBlock.data.containerOpacity : (initialData?.pageSettings?.containerOpacity ?? 1),
+            };
+          } else if (initialData?.pageSettings) {
+            // Si no hay bloque, preservamos lo que venía
+            savedData.pageSettings = initialData.pageSettings;
+          }
+        } catch {}
         return savedData;
       } catch (error) {
         console.error("Error al guardar los datos:", error);
