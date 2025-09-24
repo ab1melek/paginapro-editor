@@ -69,3 +69,35 @@ Ejemplos rápidos:
 - Cargar preview (cliente): `components/PreviewLoader.js` busca `previewKey` en la query, carga `sessionStorage.getItem(previewKey)` si existe, o hace `fetch('/api/editor?id=...')` si solo hay `id`.
 
 Fin de adiciones sobre preview responsive.
+
+Cambios aplicados en esta rama (feature-color-FondoPagina)
+-------------------------------------------------------
+Breve resumen de lo que se implementó y dónde buscarlo:
+
+- Page-level styling: se añadió persistencia y renderizado para `pageSettings` (color de fondo de la página, color y opacidad del contenedor del editor). Los lugares clave:
+	- `components/EditorRender.js` (cliente): aplica `pageSettings` en runtime y renderiza columnas respetando colores por columna.
+	- `components/EditorRender.server.js` (SSR): inyecta estilos scoped y replica el comportamiento del cliente para SEO/preview.
+	- `components/utils/editorRender.js`: funciones utilitarias (`normalize`, `getNonEmptyColumns`, `calcWeights`, `hasFourColumnsInBlocks`).
+
+- Columnas y layout: se mejoró la lógica de columnas para limitar a 4 columnas, calcular pesos según `data.ratio`, y asegurar que el contenedor sea lo bastante ancho (mínimo 900px) cuando existan 4 columnas para evitar que la cuarta baje de línea.
+	- `components/PreviewGrid.js` y `components/ReadOnlyPage.js` se actualizaron para respetar ese ancho en preview y en la página por `slug`.
+
+- UX editor: la UI de ajustes de página fue trasladada a una barra superior (en el editor) y los cambios se guardan en `pageSettings` dentro del JSON (promocionados al objeto raíz al guardar, preservando el wrapper array). El bloque visual original se dejó en el repo pero no aparece en el toolbox.
+
+- Correcciones y compatibilidad:
+	- Se eliminó una regla inválida de CSS Modules (`:global(body)` con transition) y se quitaron transiciones no deseadas que causaban efectos visuales extra; la transición global debe moverse a `app/globals.css` si se quiere mantener.
+	- No se tocaron las APIs de almacenamiento: archivos en `JSON/` siguen siendo escritos como arrays con un único objeto.
+
+Buenas prácticas aplicadas
+-------------------------
+- Preservación de la convención de almacenamiento JSON (array wrapper) para compatibilidad con servicios existentes.
+- Mantener paridad cliente/SSR: los cambios en render de columnas y `pageSettings` se aplicaron en ambos renderers para evitar discrepancias entre preview y página publicada.
+- Evitar cambios asíncronos en servicios de FS: no se introdujeron fs async en los servicios existentes.
+
+Dónde mirar si algo falla
+-------------------------
+- `components/EditorRender.js` (cliente) y `components/EditorRender.server.js` (SSR) — sincroniza comportamiento entre ambos.
+- `components/utils/editorRender.js` — lógica para calcular columnas/pesos.
+- `components/ReadOnlyPage.js` y `components/PreviewGrid.js` — wrappers que controlan el `maxWidth` usado en publicación y preview.
+
+Fin de cambios de rama.
