@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Button from "../../../components/Button";
+import { extractPageSettingsFromBlocks } from "../../../components/utils/editorRender";
 import styles from "./Editor.module.css";
 
 const Editor = dynamic(() => import("../../../components/Editor"), {
@@ -61,7 +62,12 @@ export default function EditorPage() {
           console.log("[Editor] Datos cargados para edición:", data);
           setInitialData(data);
           try {
-            const ps = (Array.isArray(data) ? data[0]?.pageSettings : data?.pageSettings) || {};
+            // Backfill desde bloque pageSettings si no existe en root (compatibilidad JSON legado)
+            let ps = (Array.isArray(data) ? data[0]?.pageSettings : data?.pageSettings) || {};
+            if (!ps || !Object.keys(ps).length) {
+              const root = Array.isArray(data) ? (data[0] || {}) : (data || {});
+              ps = extractPageSettingsFromBlocks(root.blocks || []);
+            }
             setPageStyle({
               backgroundColor: ps.backgroundColor || '#ffffff',
               containerBackgroundColor: ps.containerBackgroundColor || '#ffffff',
@@ -105,6 +111,12 @@ export default function EditorPage() {
     if (editorRef.current) {
       try {
         const savedData = await editorRef.current.save(); // Llama a la función save del editor
+        // Inyectar los colores elegidos en la barra si existen
+        savedData.pageSettings = {
+          ...(savedData.pageSettings || {}),
+          ...(pageStyle?.backgroundColor ? { backgroundColor: pageStyle.backgroundColor } : {}),
+          ...(pageStyle?.containerBackgroundColor ? { containerBackgroundColor: pageStyle.containerBackgroundColor } : {}),
+        };
         
         // Solicitar el nombre de la página si no está presente
         if (!savedData.slug) {
@@ -132,6 +144,12 @@ export default function EditorPage() {
     if (!editorRef.current) return;
     try {
       const savedData = await editorRef.current.save();
+      // Asegurar que el preview refleje los colores de la barra superior
+      savedData.pageSettings = {
+        ...(savedData.pageSettings || {}),
+        ...(pageStyle?.backgroundColor ? { backgroundColor: pageStyle.backgroundColor } : {}),
+        ...(pageStyle?.containerBackgroundColor ? { containerBackgroundColor: pageStyle.containerBackgroundColor } : {}),
+      };
       // Guardar borrador temporal en sessionStorage
       const key = `preview-${Date.now()}`;
       try {

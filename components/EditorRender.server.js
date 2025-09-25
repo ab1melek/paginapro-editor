@@ -1,7 +1,7 @@
 // Server-side renderer for Editor.js data
 // This file is safe for SSR and will be used by published pages for SEO.
 
-import { calcWeights, getNonEmptyColumns, hasFourColumnsInBlocks, makeContainerClass, normalize } from './utils/editorRender';
+import { calcWeights, getMaxColumnsInBlocks, getNonEmptyColumns, makeContainerClass, normalize } from './utils/editorRender';
 
 export default function EditorRenderServer({ data }) {
   const { blocks, pageSettings } = normalize(data);
@@ -48,9 +48,11 @@ export default function EditorRenderServer({ data }) {
 
           const { weights, total } = calcWeights(block, nonEmptyColumns);
           const containerClass = makeContainerClass(block.id);
+          const cols = nonEmptyColumns.length;
+          const gapPx = 16; // mantener en sync con style.gap
 
           return (
-            <div key={block.id} className={containerClass} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'stretch', margin: '1rem 0' }}>
+            <div key={block.id} className={containerClass} style={{ display: 'flex', gap: `${gapPx}px`, flexWrap: 'nowrap', alignItems: 'stretch', margin: '1rem 0' }}>
             {/* Scoped style to force stacking on small screens for published pages (SEO-safe) */}
             <style>{`@media (max-width:480px) { .${containerClass} > .editor-column { flex: 0 0 100% !important; max-width: 100% !important; } }`}</style>
             {nonEmptyColumns.map((colBlocks, idx) => (
@@ -58,9 +60,9 @@ export default function EditorRenderServer({ data }) {
                 key={idx}
                 className="editor-column"
                 style={{
-                  flex: `${weights[idx]} 1 0`,
-                  maxWidth: `${(weights[idx]/total)*100}%`,
-                  minWidth: nonEmptyColumns.length === 4 ? 170 : 220,
+                  flex: `0 0 calc(${(weights[idx]/total)*100}% - ${(gapPx * (cols - 1)) / cols}px)`,
+                  maxWidth: `calc(${(weights[idx]/total)*100}% - ${(gapPx * (cols - 1)) / cols}px)`,
+                  minWidth: 0,
                   display: "flex",
                   flexDirection: "column",
                   gap: ".6rem",
@@ -213,12 +215,17 @@ export default function EditorRenderServer({ data }) {
     return css;
   };
 
-  const containerMax = hasFourColumnsInBlocks(blocks) ? Math.max(pageSettings?.maxWidth || 900, 900) : (pageSettings?.maxWidth || 700);
+  const maxCols = getMaxColumnsInBlocks(blocks);
+  const containerMax = maxCols >= 4
+    ? Math.max(pageSettings?.maxWidth || 900, 900)
+    : maxCols === 3
+      ? Math.max(pageSettings?.maxWidth || 780, 780)
+      : (pageSettings?.maxWidth || 700);
 
   return (
     <>
       {buildStyles() ? <style dangerouslySetInnerHTML={{ __html: buildStyles() }} /> : null}
-      <div className="editor-content-container" style={{ padding: 32, maxWidth: containerMax, margin: '0 auto' }}>
+      <div className="editor-content-container" style={{ padding: 32, maxWidth: containerMax, width: '100%', margin: '0 auto' }}>
         {blocks.map(b => renderBlock(b, false))}
       </div>
     </>

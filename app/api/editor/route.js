@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
-import { createPage } from "../services/createPage.service";
-import { editPageById, getPageById } from "../services/editPageById.service";
-import { getPageBySlug } from "../services/getPageBySlug.service";
-import { getPages } from "../services/getPages.services";
+import { createPage } from "../services/createPage.db.service";
+import { editPageById, getPageById } from "../services/editPageById.db.service";
+import { getPageBySlug } from "../services/getPageBySlug.db.service";
+import { getPages } from "../services/getPages.db.services";
 
 export async function POST(req) {
     try {
         const data = await req.json(); // Usar await para obtener los datos correctamente
         console.log("Datos recibidos en el router:", data);
-        const result = await createPage(data); // Pasar los datos al servicio
+        const result = await createPage(data);
         return NextResponse.json(result, { status: 201 });
     } catch (error){
         console.error("Error al procesar la solicitud:", error);
+        if (error?.message === 'SLUG_DUPLICATE') {
+          return NextResponse.json({ error: "Slug ya existe" }, { status: 400 });
+        }
         return NextResponse.json({ error: "Error al procesar la solicitud" }, { status: 500 });
     }
 };
@@ -29,7 +32,7 @@ export async function GET(req) {
   return NextResponse.json(page, { status: 200 });
     } else if (slug) {
         // Obtener una página especifica por slug
-      const page = await getPageBySlug(slug);
+  const page = await getPageBySlug(slug);
   if (!page) {
     return NextResponse.json({ error: "Página no encontrada" }, { status: 404 });
   }

@@ -2,7 +2,7 @@
 
 // Render sin depender de editorjs-react-renderer para asegurar alineaciones
 import { useEffect } from 'react';
-import { calcWeights, getNonEmptyColumns, hasFourColumnsInBlocks, makeContainerClass, normalize } from './utils/editorRender';
+import { calcWeights, getMaxColumnsInBlocks, getNonEmptyColumns, makeContainerClass, normalize } from './utils/editorRender';
 
 export default function EditorRender({ data, device }) {
   const { blocks, pageSettings } = normalize(data);
@@ -99,8 +99,10 @@ export default function EditorRender({ data, device }) {
           );
         }
 
-        const { weights, total } = calcWeights(block, nonEmptyColumns);
+  const { weights, total } = calcWeights(block, nonEmptyColumns);
         const containerClass = makeContainerClass(block.id);
+  const cols = nonEmptyColumns.length;
+  const gapPx = 16; // mantener en sync con style.gap
 
         return (
           <div
@@ -108,8 +110,8 @@ export default function EditorRender({ data, device }) {
             className={containerClass}
             style={{
               display: "flex",
-              gap: "1rem",
-              flexWrap: 'wrap',
+              gap: `${gapPx}px`,
+              flexWrap: 'nowrap',
               alignItems: "stretch",
               margin: "1rem 0"
             }}
@@ -121,10 +123,9 @@ export default function EditorRender({ data, device }) {
                 key={idx}
                 className="editor-column"
                 style={{
-                  flex: `${weights[idx]} 1 0` ,
-                  // Usar width flexible hasta 4 columnas; para tamaños pequeños permite wrap
-                  maxWidth: `${(weights[idx]/total)*100}%`,
-                  minWidth: nonEmptyColumns.length === 4 ? 170 : 220,
+                  flex: `0 0 calc(${(weights[idx]/total)*100}% - ${(gapPx * (cols - 1)) / cols}px)` ,
+                  maxWidth: `calc(${(weights[idx]/total)*100}% - ${(gapPx * (cols - 1)) / cols}px)`,
+                  minWidth: 0,
                   display: "flex",
                   flexDirection: "column",
                   gap: ".6rem",
@@ -266,12 +267,17 @@ export default function EditorRender({ data, device }) {
     }
   };
 
-  const containerMax = hasFourColumnsInBlocks(blocks) ? Math.max(pageSettings?.maxWidth || 900, 900) : (pageSettings?.maxWidth || 700);
+  const maxCols = getMaxColumnsInBlocks(blocks);
+  const containerMax = maxCols >= 4
+    ? Math.max(pageSettings?.maxWidth || 900, 900)
+    : maxCols === 3
+      ? Math.max(pageSettings?.maxWidth || 780, 780)
+      : (pageSettings?.maxWidth || 700);
 
   return (
     <div
       className="editor-content-container"
-      style={{ padding: 32, maxWidth: containerMax, margin: '0 auto' }}
+      style={{ padding: 32, maxWidth: containerMax, width: '100%', margin: '0 auto' }}
     >
       {blocks.map(b => renderBlock(b, false))}
     </div>

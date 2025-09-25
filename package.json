@@ -3,10 +3,16 @@
   "version": "1.0.0",
   "description": "Prueba de concepto para hacer un editor de texto con editor.js",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "db:migrate": "node db/migrations/migration.js",
+    "db:json:migrate": "node db/jsonMigration.js",
+    "db:check": "node db/healthcheck.js",
+    "db:up": "docker run --name editor-pg -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres -d postgres:15",
+    "db:down": "docker rm -f editor-pg"
   },
   "repository": {
     "type": "git",
@@ -43,6 +49,7 @@
     "next": "^15.4.7",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "pg": "^8.12.0"
   }
 }
