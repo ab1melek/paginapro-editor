@@ -32,3 +32,9 @@ export async function selectPages() {
   const res = await query(`SELECT id, slug, title, created_at FROM pages ORDER BY created_at DESC`);
   return res.rows.map(r => ({ id: r.id, name: r.slug || r.title || 'Sin nombre' }));
 }
+
+// Devuelve todas las páginas con sus datos completos (incluye blocks)
+export async function selectAllPagesWithData() {
+  const res = await query(`SELECT * FROM pages`);
+  return res.rows.map(fromPageRow);
+}

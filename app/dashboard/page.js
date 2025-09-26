@@ -61,9 +61,11 @@ export default function DashboardPage() {
   return (
     <main style={{ padding: 20 }}>
       <h1>Dashboard</h1>
-            <button onClick={handleCreate} style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+        <button onClick={handleCreate}>
         Crear nueva página
-      </button>
+        </button>
+      </div>
       <PageList pages={pages} onEdit={handleEdit} onDelete={handleDelete} />
     </main>
   );

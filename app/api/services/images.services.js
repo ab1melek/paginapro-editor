@@ -52,3 +52,64 @@ export async function saveImage(file) {
   await fs.writeFile(filePath, Buffer.from(await file.arrayBuffer()));
   return `/uploads/${fileName}`;
 }
+
+// Intenta borrar una imagen a partir de su URL. Devuelve true si se borró o no existía.
+export async function deleteImage(imageUrl) {
+  try {
+    if (!imageUrl || typeof imageUrl !== 'string') return true;
+
+    const blobUrl = BLOB?.url || null;
+    // Caso blob server: URLs tipo http(s)://host:port/blob/<id>
+    if (blobUrl) {
+      try {
+        const u = new URL(imageUrl);
+        const b = new URL(blobUrl);
+        const isBlobPath = u.pathname.startsWith('/blob/');
+        if (isBlobPath) {
+          const id = decodeURIComponent(u.pathname.split('/').pop() || '');
+          if (!id) return false;
+          // En dev, apuntamos el DELETE siempre al origin de BLOB_URL para garantizar borrado
+          const del = await fetch(`${b.origin}/blob/${encodeURIComponent(id)}`, { method: 'DELETE' });
+          if (del.status === 204) return true;
+          if (del.status === 404) {
+            // Verificar si realmente no existe
+            try {
+              const chk = await fetch(`${b.origin}/blob/${encodeURIComponent(id)}`, { method: 'GET' });
+              return chk.status === 404;
+            } catch {
+              // Si el GET falla por red, asumimos no existente
+              return true;
+            }
+          }
+          return false;
+        }
+      } catch {}
+    }
+
+    // Caso local: rutas relativas bajo /uploads/
+    if (imageUrl.startsWith('/uploads/')) {
+      const localPath = path.join(process.cwd(), 'public', imageUrl.replace(/^\//, ''));
+      try {
+        await fs.unlink(localPath);
+        return true;
+      } catch (e) {
+        if (e && e.code === 'ENOENT') return true; // ya no existe
+        throw e;
+      }
+    }
+
+    // Si es una URL absoluta externa que no controlamos, no la borramos
+    return true;
+  } catch (e) {
+    console.warn('deleteImage error:', e);
+    return false;
+  }
+}
+
+function defaultPort(protocol) {
+  return protocol === 'https:' ? '443' : '80';
+}
+
+function isLoopback(host) {
+  return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+}

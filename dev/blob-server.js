@@ -41,5 +41,19 @@ app.get('/blob/:id', (req, res) => {
   return res.sendFile(filePath);
 });
 
+// delete by id
+app.delete('/blob/:id', (req, res) => {
+  const id = req.params.id;
+  const filePath = path.join(UPLOAD_DIR, id);
+  try {
+    if (!fs.existsSync(filePath)) return res.status(404).json({ ok: false, error: 'Not found' });
+    fs.unlinkSync(filePath);
+    return res.status(204).send();
+  } catch (e) {
+    console.error('Blob delete error', e);
+    return res.status(500).json({ ok: false, error: 'Delete failed' });
+  }
+});
+
 const port = BLOB?.port || (process.env.BLOB_PORT ? Number(process.env.BLOB_PORT) : 4001);
 app.listen(port, () => console.log(`Blob dev server listening on http://localhost:${port}`));

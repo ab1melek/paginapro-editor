@@ -40,6 +40,34 @@ const Editor = forwardRef(({ initialData }, ref) => {
         holder: "editorjs",
         tools: EDITOR_JS_TOOLS,
         data: initialData || INITIAL_DATA,
+        onChange: async () => {
+          try {
+            // Debounce simple por frame
+            if (editorRef.__onChangeScheduled) return;
+            editorRef.__onChangeScheduled = true;
+            requestAnimationFrame(async () => {
+              editorRef.__onChangeScheduled = false;
+              if (!editorRef.current?.save) return;
+              const data = await editorRef.current.save();
+              const urlsNow = collectImageUrls(data);
+              const urlsPrev = editorRef.__lastImageUrls || new Set();
+              // Detectar removidas
+              for (const u of urlsPrev) {
+                if (!urlsNow.has(u)) {
+                  // Llamar a API DELETE (best-effort)
+                  try {
+                    await fetch('/api/images', {
+                      method: 'DELETE',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ url: u })
+                    });
+                  } catch {}
+                }
+              }
+              editorRef.__lastImageUrls = urlsNow;
+            });
+          } catch {}
+        },
       });
 
       editorRef.current = editor;
@@ -57,11 +85,25 @@ const Editor = forwardRef(({ initialData }, ref) => {
           console.warn('EditorJS no terminó de inicializarse', err);
         });
 
-      if (initialData) loadedRef.current = true;
+      if (initialData) {
+        loadedRef.current = true;
+        // Inicializamos baseline de imágenes para comparación
+        try {
+          editor.save().then(d => {
+            editorRef.__lastImageUrls = collectImageUrls(d);
+          }).catch(()=>{});
+        } catch {}
+      }
     } else if (initialData && !loadedRef.current) {
       try {
         editorRef.current.render(initialData);
         loadedRef.current = true;
+        // Actualizar baseline post-render
+        try {
+          editorRef.current.save().then(d => {
+            editorRef.__lastImageUrls = collectImageUrls(d);
+          }).catch(()=>{});
+        } catch {}
       } catch (e) {
         console.warn("No se pudo renderizar initialData en EditorJS", e);
       }
@@ -117,5 +159,30 @@ const Editor = forwardRef(({ initialData }, ref) => {
 
   return <div id="editorjs" />;
 });
+
+// Recorre la estructura de datos de Editor.js y extrae URLs de imágenes (bloque image y columnas anidadas)
+function collectImageUrls(data) {
+  const out = new Set();
+  const visitBlocks = (blocks) => {
+    if (!Array.isArray(blocks)) return;
+    for (const b of blocks) {
+      if (!b || typeof b !== 'object') continue;
+      if (b.type === 'image') {
+        const url = b.data?.file?.url || b.data?.url;
+        if (typeof url === 'string' && url) out.add(url);
+      }
+      // columns: data.blocks -> array de columnas -> cada columna es array de bloques
+      if (b.type === 'columns' && Array.isArray(b.data?.blocks)) {
+        for (const col of b.data.blocks) {
+          const colBlocks = Array.isArray(col) ? col : (col?.blocks || []);
+          visitBlocks(colBlocks);
+        }
+      }
+    }
+  };
+  const rootBlocks = Array.isArray(data?.blocks) ? data.blocks : [];
+  visitBlocks(rootBlocks);
+  return out;
+}
 
 export default Editor;
