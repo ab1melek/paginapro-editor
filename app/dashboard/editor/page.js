@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Button from "../../../components/Button";
 import { extractPageSettingsFromBlocks } from "../../../components/utils/editorRender";
 import styles from "./Editor.module.css";
@@ -28,7 +28,7 @@ const callEditorService = async (data, isEditing) => {
   }
 };
 
-export default function EditorPage() {
+function EditorPageInner() {
   const editorRef = useRef(null);
   const searchParams = useSearchParams();
   const pageId = searchParams.get("id");
@@ -208,5 +208,13 @@ export default function EditorPage() {
         <Editor ref={editorRef} initialData={initialData} />
       </div>
     </main>
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={<div>Cargando editor…</div>}>
+      <EditorPageInner />
+    </Suspense>
   );
 }

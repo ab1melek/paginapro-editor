@@ -12,7 +12,8 @@
     "db:json:migrate": "node db/jsonMigration.js",
     "db:check": "node db/healthcheck.js",
     "db:up": "docker run --name editor-pg -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres -d postgres:15",
-    "db:down": "docker rm -f editor-pg"
+    "db:down": "docker rm -f editor-pg",
+    "blob:dev": "node dev/blob-server.js"
   },
   "repository": {
     "type": "git",
@@ -46,10 +47,12 @@
     "editorjs-drag-drop": "^1.1.16",
     "editorjs-react-renderer": "^3.5.1",
     "editorjs-text-alignment-blocktune": "^1.0.3",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
     "next": "^15.4.7",
+    "pg": "^8.12.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "uuid": "^11.1.0",
-    "pg": "^8.12.0"
+    "uuid": "^11.1.0"
   }
 }
