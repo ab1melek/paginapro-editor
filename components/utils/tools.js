@@ -1,5 +1,4 @@
 import Columns from "@aaaalrashd/editorjs-columns"
-import CheckList from '@editorjs/checklist'
 import Code from '@editorjs/code'
 import Delimiter from '@editorjs/delimiter'
 import Embed from '@editorjs/embed'
@@ -11,6 +10,7 @@ import Table from '@editorjs/table'
 import Warning from '@editorjs/warning'
 import ColorPicker from 'editorjs-color-picker'
 import AlignmentTuneTool from "editorjs-text-alignment-blocktune"
+import ChecklistWithColor from '../editorPlugins/ChecklistWithColor'
 import ColorButtonTool from '../editorPlugins/ColorButtonTool'
 import ColumnsStyleTune from '../editorPlugins/ColumnsStyleTune'
 import FontEditorTool from '../editorPlugins/FontEditorTool'
@@ -23,12 +23,12 @@ import TextColorInlineTool from '../editorPlugins/TextColorInlineTool'
 export const EDITOR_JS_TOOLS = {
   paragraph: {
     class: ParagraphWithColor,
-    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
+    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor', 'fontEditor'],
     tunes: ["alignment"],
   },
   header: {
     class: HeaderWithColor,
-    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
+    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor', 'fontEditor'],
     tunes: ["alignment"],
     config: {
       levels: [1, 2, 3, 4],
@@ -37,18 +37,19 @@ export const EDITOR_JS_TOOLS = {
   },
   list: {
     class: ListWithColor,
-    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
+    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor', 'fontEditor'],
   },
-  checklist: CheckList,
+  checklist: {
+    class: ChecklistWithColor,
+    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor', 'fontEditor'],
+  },
   quote: {
     class: QuoteWithColor,
-    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
+    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor', 'fontEditor'],
   },
-  // Color picker de bloques (no inline). Se mantiene disponible en toolbox general si lo deseas.
   ColorPicker: {
       class: ColorPicker,
    },
-  // Herramienta inline de color propia (estable)
   textColor: {
     class: TextColorInlineTool,
   },
@@ -91,34 +92,29 @@ export const EDITOR_JS_TOOLS = {
   button: {
     class: ColorButtonTool,
   },
-  // Tune global para permitir estilos por columna en el bloque columns
   columnsStyle: {
     class: ColumnsStyleTune,
   },
-  // Nota: el bloque PageSettingsTool fue removido del toolbox para evitar duplicidad con la barra superior
   columns: {
         class: Columns,
         tunes: ['columnsStyle'],
         config: {
           maxColumns: 4,
           tools: {
-            // Titulos (Headers)
             header: {
               class: HeaderWithColor,
-              inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
+              inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor', 'fontEditor'],
               tunes: ["alignment"],
               config: {
                 levels: [1, 2, 3, 4],
                 defaultLevel: 2,
               },
             },
-            // Párrafos (Texto)
             paragraph: {
               class: ParagraphWithColor,
-              inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
+              inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor', 'fontEditor'],
               tunes: ["alignment"],
             },
-            // Imagenes
             image: {
               class: ImageTool,
               config: {
@@ -132,15 +128,11 @@ export const EDITOR_JS_TOOLS = {
                 },
               },
             },
-            // Selector de color
             ColorPicker: { class: ColorPicker },
-            // Inline tools necesarias para inlineToolbar
             textColor: { class: TextColorInlineTool },
             marker: { class: Marker },
             inlineCode: { class: InlineCode },
-            // Editor de fuente (tamaños, estilos, etc.)
             fontEditor: { class: FontEditorTool, inlineToolbar: true },
-            // Alineación (tune)
             alignment: {
               class: AlignmentTuneTool,
               config: {
@@ -151,7 +143,15 @@ export const EDITOR_JS_TOOLS = {
                 },
               },
             },
-            list: { class: ListWithColor, inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'] },
+            list: { class: ListWithColor, inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor', 'fontEditor'] },
+            quote: {
+              class: QuoteWithColor,
+              inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor', 'fontEditor'],
+            },
+            checklist: {
+              class: ChecklistWithColor,
+              inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor', 'fontEditor'],
+            },
             button: { class: ColorButtonTool },
           },
         },
