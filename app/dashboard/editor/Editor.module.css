@@ -55,8 +55,9 @@
     top: 8px;
     z-index: 10;
     display: flex;
-    gap: 16px;
-    align-items: center;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
     background: rgba(255,255,255,0.95);
     backdrop-filter: blur(6px);
     border: 1px solid #e5e7eb;
@@ -89,6 +90,30 @@
     padding: 8px 12px;
 }
 
+/* Nueva disposición: acciones arriba y colores abajo */
+.actionsRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.actionsSpacer {
+    flex: 1 1 auto;
+}
+
+.actionsGroupRight {
+    display: flex;
+    gap: 12px;
+}
+
+.colorsRow {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+}
+
 /* Slider style */
 .styleBar input[type="range"] {
     appearance: none;
@@ -105,6 +130,24 @@
     background: #2e7d32;
     border-radius: 50%;
     box-shadow: 0 0 0 3px rgba(46,125,50,0.15);
+}
+
+/* Responsive móvil: apilar y evitar encimado */
+@media (max-width: 480px) {
+    .actionsRow {
+        gap: 8px;
+    }
+    .actionsGroupRight {
+        gap: 8px;
+    }
+    .colorsRow {
+        gap: 8px;
+    }
+    .actionButton {
+        min-width: 88px;
+        padding: 8px 10px;
+        font-size: 13px;
+    }
 }
 
 /* Transiciones suavizadas removidas: anteriormente aquí se aplicaba transition a

@@ -117,7 +117,7 @@ export default function EditorRender({ data, device }) {
             }}
           >
             {/* Scoped style to force stacking on small screens */}
-            <style>{`@media (max-width:480px) { .${containerClass} > .editor-column { flex: 0 0 100% !important; max-width: 100% !important; } }`}</style>
+            <style>{`@media (max-width:480px) { .${containerClass} { flex-wrap: wrap !important; } .${containerClass} > .editor-column { flex: 0 0 100% !important; max-width: 100% !important; } }`}</style>
             {nonEmptyColumns.map((colBlocks, idx) => (
               <div
                 key={idx}
@@ -277,7 +277,7 @@ export default function EditorRender({ data, device }) {
   return (
     <div
       className="editor-content-container"
-      style={{ padding: 32, maxWidth: containerMax, width: '100%', margin: '0 auto' }}
+      style={{ padding: 32, maxWidth: containerMax, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}
     >
       {blocks.map(b => renderBlock(b, false))}
     </div>

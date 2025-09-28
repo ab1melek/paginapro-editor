@@ -54,7 +54,7 @@ export default function EditorRenderServer({ data }) {
           return (
             <div key={block.id} className={containerClass} style={{ display: 'flex', gap: `${gapPx}px`, flexWrap: 'nowrap', alignItems: 'stretch', margin: '1rem 0' }}>
             {/* Scoped style to force stacking on small screens for published pages (SEO-safe) */}
-            <style>{`@media (max-width:480px) { .${containerClass} > .editor-column { flex: 0 0 100% !important; max-width: 100% !important; } }`}</style>
+            <style>{`@media (max-width:480px) { .${containerClass} { flex-wrap: wrap !important; } .${containerClass} > .editor-column { flex: 0 0 100% !important; max-width: 100% !important; } }`}</style>
             {nonEmptyColumns.map((colBlocks, idx) => (
               <div
                 key={idx}
@@ -225,7 +225,7 @@ export default function EditorRenderServer({ data }) {
   return (
     <>
       {buildStyles() ? <style dangerouslySetInnerHTML={{ __html: buildStyles() }} /> : null}
-      <div className="editor-content-container" style={{ padding: 32, maxWidth: containerMax, width: '100%', margin: '0 auto' }}>
+      <div className="editor-content-container" style={{ padding: 32, maxWidth: containerMax, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {blocks.map(b => renderBlock(b, false))}
       </div>
     </>

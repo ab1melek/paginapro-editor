@@ -172,13 +172,18 @@ function EditorPageInner() {
   
   return (
     <main className={styles.main}>
-      {/* Barra superior de estilos */}
+      {/* Barra superior de estilos (responsive: acciones arriba, colores abajo en móvil) */}
       <div className={styles.styleBar}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-start', width: '20%' }}>
+        <div className={styles.actionsRow}>
           <Button label="Dashboard" onClick={() => window.location.href = "/dashboard"} className={styles.actionButton} />
+          <div className={styles.actionsSpacer} />
+          <div className={styles.actionsGroupRight}>
+            <Button label="Preview" onClick={handlePreviewClick} className={styles.actionButton} />
+            <Button label="Guardar" onClick={handleSaveClick} className={styles.actionButton} />
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center', width: '60%' }}>
+        <div className={styles.colorsRow}>
           <div className={styles.styleControl}>
             <label>Color Fondo</label>
             <input
@@ -195,11 +200,6 @@ function EditorPageInner() {
               onChange={(e) => updatePageSettings({ containerBackgroundColor: e.target.value })}
             />
           </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'flex-end', width: '20%' }}>
-          <Button label="Preview" onClick={handlePreviewClick} className={styles.actionButton} />
-          <Button label="Guardar" onClick={handleSaveClick} className={styles.actionButton} />
         </div>
       </div>
 
