@@ -3,13 +3,9 @@ import CheckList from '@editorjs/checklist'
 import Code from '@editorjs/code'
 import Delimiter from '@editorjs/delimiter'
 import Embed from '@editorjs/embed'
-import Header from '@editorjs/header'
 import ImageTool from '@editorjs/image'
 import InlineCode from '@editorjs/inline-code'
-import List from '@editorjs/list'
 import Marker from '@editorjs/marker'
-import Paragraph from '@editorjs/paragraph'
-import Quote from '@editorjs/quote'
 import Raw from '@editorjs/raw'
 import Table from '@editorjs/table'
 import Warning from '@editorjs/warning'
@@ -18,16 +14,21 @@ import AlignmentTuneTool from "editorjs-text-alignment-blocktune"
 import ColorButtonTool from '../editorPlugins/ColorButtonTool'
 import ColumnsStyleTune from '../editorPlugins/ColumnsStyleTune'
 import FontEditorTool from '../editorPlugins/FontEditorTool'
+import HeaderWithColor from '../editorPlugins/HeaderWithColor'
+import ListWithColor from '../editorPlugins/ListWithColor'
+import ParagraphWithColor from '../editorPlugins/ParagraphWithColor'
+import QuoteWithColor from '../editorPlugins/QuoteWithColor'
+import TextColorInlineTool from '../editorPlugins/TextColorInlineTool'
 
 export const EDITOR_JS_TOOLS = {
   paragraph: {
-    class: Paragraph,
-    inlineToolbar: true,
+    class: ParagraphWithColor,
+    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
     tunes: ["alignment"],
   },
   header: {
-    class: Header,
-    inlineToolbar: true,
+    class: HeaderWithColor,
+    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
     tunes: ["alignment"],
     config: {
       levels: [1, 2, 3, 4],
@@ -35,17 +36,22 @@ export const EDITOR_JS_TOOLS = {
     },
   },
   list: {
-    class: List,
-    inlineToolbar: true,
+    class: ListWithColor,
+    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
   },
   checklist: CheckList,
   quote: {
-    class: Quote,
-    inlineToolbar: true,
+    class: QuoteWithColor,
+    inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
   },
+  // Color picker de bloques (no inline). Se mantiene disponible en toolbox general si lo deseas.
   ColorPicker: {
       class: ColorPicker,
    },
+  // Herramienta inline de color propia (estable)
+  textColor: {
+    class: TextColorInlineTool,
+  },
   fontEditor: {
     class: FontEditorTool,
     inlineToolbar: true
@@ -98,8 +104,8 @@ export const EDITOR_JS_TOOLS = {
           tools: {
             // Titulos (Headers)
             header: {
-              class: Header,
-              inlineToolbar: true,
+              class: HeaderWithColor,
+              inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
               tunes: ["alignment"],
               config: {
                 levels: [1, 2, 3, 4],
@@ -108,8 +114,8 @@ export const EDITOR_JS_TOOLS = {
             },
             // Párrafos (Texto)
             paragraph: {
-              class: Paragraph,
-              inlineToolbar: true,
+              class: ParagraphWithColor,
+              inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'],
               tunes: ["alignment"],
             },
             // Imagenes
@@ -128,6 +134,10 @@ export const EDITOR_JS_TOOLS = {
             },
             // Selector de color
             ColorPicker: { class: ColorPicker },
+            // Inline tools necesarias para inlineToolbar
+            textColor: { class: TextColorInlineTool },
+            marker: { class: Marker },
+            inlineCode: { class: InlineCode },
             // Editor de fuente (tamaños, estilos, etc.)
             fontEditor: { class: FontEditorTool, inlineToolbar: true },
             // Alineación (tune)
@@ -141,7 +151,7 @@ export const EDITOR_JS_TOOLS = {
                 },
               },
             },
-            list: { class: List, inlineToolbar: true },
+            list: { class: ListWithColor, inlineToolbar: ['bold', 'italic', 'link', 'marker', 'inlineCode', 'textColor'] },
             button: { class: ColorButtonTool },
           },
         },

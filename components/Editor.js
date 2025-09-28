@@ -40,6 +40,10 @@ const Editor = forwardRef(({ initialData }, ref) => {
         holder: "editorjs",
         tools: EDITOR_JS_TOOLS,
         data: initialData || INITIAL_DATA,
+        sanitizer: {
+          span: { style: true, class: true },
+          mark: { style: true, class: true },
+        },
         onChange: async () => {
           try {
             // Debounce simple por frame
