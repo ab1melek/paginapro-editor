@@ -16,9 +16,51 @@ export default function EditorRenderServer({ data }) {
       : (rawAlign || "left");
 
     switch (block.type) {
+      case "hero": {
+        const d = block.data || {};
+        const o = (hex, a=1) => {
+          try {
+            if (!hex) return '';
+            const h = hex.replace('#','');
+            const v = h.length===3 ? h.split('').map(c=>c+c).join('') : h;
+            const x = parseInt(v,16); const r=(x>>16)&255, g=(x>>8)&255, b=x&255;
+            return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, a))})`;
+          } catch { return ''; }
+        };
+        const base = d.bg || 'linear-gradient(180deg,rgba(255,255,255,.98),#fff)';
+        const heroBgLocal = d.overlayColor && (typeof d.overlayOpacity === 'number') && d.overlayOpacity>0
+          ? `linear-gradient(${o(d.overlayColor, d.overlayOpacity)}, ${o(d.overlayColor, d.overlayOpacity)}), ${base}`
+          : base;
+        return (
+          <section key={block.id} className="landing-hero" style={{ background: heroBgLocal, textAlign: d.align || 'center', paddingTop: (d.paddingTop||72), paddingBottom: (d.paddingBottom||48) }}>
+            {(Array.isArray(d.blocks) ? d.blocks : []).map(inner => renderBlock(inner, false))}
+          </section>
+        );
+      }
       case "pageSettings": {
         // Bloque de control visual, no se renderiza como contenido
         return null;
+      }
+      case "socialIcons": {
+        const d = block.data || {};
+        const icons = Array.isArray(d.icons) ? d.icons.filter(i => i?.url) : [];
+        if (!icons.length) return null;
+        const align = d.alignment || 'center';
+        const size = typeof d.size === 'number' ? d.size : 40;
+        return (
+          <div key={block.id} style={{ textAlign: align, margin: '0 0 1rem' }}>
+            {icons.map((ic, idx) => {
+              let domain = '';
+              try { const u = new URL(ic.url); domain = (u.hostname || '').replace('www.',''); } catch {}
+              const src = domain ? `https://www.google.com/s2/favicons?sz=128&domain=${encodeURIComponent(domain)}` : '';
+              return (
+                <a key={idx} href={ic.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', margin: '0 6px', verticalAlign: 'middle' }}>
+                  <img src={src} alt={domain || 'icon'} width={size} height={size} style={{ width: size, height: size, borderRadius: '50%', background: ic.bgColor || d.bgColor || 'transparent', padding: 4 }} />
+                </a>
+              );
+            })}
+          </div>
+        );
       }
       case "button": {
         const d = block.data || {};
@@ -222,11 +264,94 @@ export default function EditorRenderServer({ data }) {
       ? Math.max(pageSettings?.maxWidth || 780, 780)
       : (pageSettings?.maxWidth || 700);
 
+  const isLanding = pageSettings?.layout === 'landing';
+  const themePrimary = pageSettings?.primaryColor || '#2563eb';
+  const themeText = pageSettings?.textColor || '#0f172a';
+  const heroBase = pageSettings?.heroBackground || pageSettings?.containerBackgroundColor || 'linear-gradient(180deg,rgba(255,255,255,.98),#fff)';
+  const overlayHex = pageSettings?.heroOverlayColor || '';
+  const overlayOpacity = typeof pageSettings?.heroOverlayOpacity === 'number' ? pageSettings.heroOverlayOpacity : 0;
+  const hexToRgba = (hex, a=1) => {
+    try {
+      if (!hex || typeof hex !== 'string') return '';
+      const h = hex.replace('#','');
+      const v = h.length===3 ? h.split('').map(c=>c+c).join('') : h;
+      const bigint = parseInt(v, 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+      return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, a))})`;
+    } catch { return ''; }
+  };
+  const heroBg = overlayHex && overlayOpacity > 0
+    ? `linear-gradient(${hexToRgba(overlayHex, overlayOpacity)}, ${hexToRgba(overlayHex, overlayOpacity)}), ${heroBase}`
+    : heroBase;
+
+  const landingCss = isLanding ? `
+    .landing-theme .editor-content-container{padding:0 !important;max-width:${containerMax}px}
+    .landing-hero{padding:72px 24px 48px;background:${heroBg};text-align:center}
+    .landing-hero h1{font-size:44px;line-height:1.1;margin:0 0 12px;letter-spacing:-.02em}
+    .landing-hero p{font-size:18px;opacity:.85;margin:0 0 18px}
+    .landing-cta{display:inline-block;background:${themePrimary};color:#fff;padding:12px 22px;border-radius:10px;box-shadow:0 8px 24px rgba(37,99,235,.25)}
+    .landing-section{padding:40px 24px}
+    .landing-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+    .landing-card{background:#fff;border:1px solid #eef2f7;border-radius:12px;padding:18px;box-shadow:0 4px 14px rgba(20,24,38,.04)}
+    .landing-theme h1,.landing-theme h2,.landing-theme h3,.landing-theme p{color:${themeText}}
+  ` : '';
+
+  // Heurística de landing (SSR): hero + cards
+  const renderLanding = () => {
+    if (!isLanding) return null;
+    // Si existe un bloque hero explícito, usar render normal respetando el bloque hero
+    if (Array.isArray(blocks) && blocks.some(b => b?.type === 'hero')) {
+      return blocks.map(b => renderBlock(b, false));
+    }
+    const out = [];
+    for (let i=0;i<blocks.length;i++) {
+      const b = blocks[i];
+      if (i === 0 && b.type === 'header') {
+        const next = blocks[i+1];
+        const next2 = blocks[i+2];
+        if (next?.type === 'paragraph' && next2?.type === 'button') {
+          out.push(
+            <section key={`hero-${b.id}`} className="landing-hero">
+              {renderBlock(b)}
+              {renderBlock(next)}
+              <div style={{marginTop:8}}>
+                <a href={next2?.data?.link || '#'} className="landing-cta">{next2?.data?.text || 'Empezar'}</a>
+              </div>
+            </section>
+          );
+          i += 2; // consumimos header+paragraph+button
+          continue;
+        }
+      }
+      if (b.type === 'columns' && Array.isArray(b.data?.blocks) && b.data.blocks.length === 3) {
+        out.push(
+          <section key={`cards-${b.id}`} className="landing-section">
+            <div className="landing-cards">
+              {b.data.blocks.map((col, idx) => (
+                <div key={idx} className="landing-card">
+                  {(Array.isArray(col) ? col : (col?.blocks || [])).map(inner => renderBlock(inner))}
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+        continue;
+      }
+      out.push(renderBlock(b));
+    }
+    return out;
+  };
+
   return (
     <>
       {buildStyles() ? <style dangerouslySetInnerHTML={{ __html: buildStyles() }} /> : null}
-      <div className="editor-content-container" style={{ padding: 32, maxWidth: containerMax, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
-        {blocks.map(b => renderBlock(b, false))}
+      {isLanding && landingCss ? <style dangerouslySetInnerHTML={{ __html: landingCss }} /> : null}
+      <div className={isLanding ? 'landing-theme' : undefined}>
+        <div className="editor-content-container" style={{ padding: 32, maxWidth: containerMax, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+          {isLanding ? renderLanding() : blocks.map(b => renderBlock(b, false))}
+        </div>
       </div>
     </>
   );

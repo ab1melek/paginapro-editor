@@ -17,7 +17,7 @@ export default function DashboardPage() {
 
   // Manejar la creación de una nueva página
   const handleCreate = () => {
-    router.push(`/dashboard/editor`); // Redirigir al editor sin un ID
+    router.push(`/dashboard/new`); // Redirigir al selector de plantillas
   };
 
   // Manejar la edición de una página: primero obtener y loguear datos
@@ -41,12 +41,15 @@ export default function DashboardPage() {
     const confirmDelete = confirm("¿Estás seguro de que deseas eliminar esta página?");
     if (confirmDelete) {
       try {
-        const response = await fetch(`/api/editor?id=${id}`, {
-          method: "DELETE",
-        });
-        const result = await response.json();
-        alert(result.message);
-        fetchPages(); // Actualizar la lista después de eliminar
+        const response = await fetch(`/api/editor?id=${id}`, { method: "DELETE" });
+        let result = null;
+        try { result = await response.json(); } catch {}
+        if (response.ok) {
+          alert(result?.message || 'Página eliminada');
+          fetchPages();
+        } else {
+          alert(result?.error || 'No se pudo eliminar');
+        }
       } catch (error) {
         console.error("Error al eliminar la página:", error);
         alert("Error al eliminar la página");

@@ -99,8 +99,15 @@ function EditorPageInner() {
       setInitialData((prevData) => {
         if (!prevData) return prevData;
         const root = Array.isArray(prevData) ? (prevData[0] || {}) : (prevData || {});
-        // Solo persistir backgroundColor y containerBackgroundColor para evitar maxWidth
-        const updated = { ...root, pageSettings: { ...(root.pageSettings || {}), backgroundColor: next.backgroundColor, containerBackgroundColor: next.containerBackgroundColor } };
+        // Persistir colores y heroBackground (sin tocar maxWidth ni otros campos)
+        const updated = {
+          ...root,
+          pageSettings: {
+            ...(root.pageSettings || {}),
+            backgroundColor: next.backgroundColor,
+            containerBackgroundColor: next.containerBackgroundColor,
+          }
+        };
         return Array.isArray(prevData) ? [updated] : updated;
       });
       return next;

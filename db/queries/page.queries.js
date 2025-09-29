@@ -38,3 +38,8 @@ export async function selectAllPagesWithData() {
   const res = await query(`SELECT * FROM pages`);
   return res.rows.map(fromPageRow);
 }
+
+export async function deletePageById(id) {
+  const res = await query(`DELETE FROM pages WHERE id=$1`, [id]);
+  return { ok: res.rowCount > 0 };
+}

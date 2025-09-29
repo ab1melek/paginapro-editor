@@ -175,6 +175,14 @@ function collectImageUrls(data) {
         const url = b.data?.file?.url || b.data?.url;
         if (typeof url === 'string' && url) out.add(url);
       }
+      // hero: data.bg puede ser 'url(...) ...'
+      if (b.type === 'hero' && b.data && typeof b.data.bg === 'string') {
+        const m = b.data.bg.match(/url\(([^)]+)\)/i);
+        if (m && m[1]) {
+          const raw = m[1].replace(/['"]/g, '');
+          if (raw) out.add(raw);
+        }
+      }
       // columns: data.blocks -> array de columnas -> cada columna es array de bloques
       if (b.type === 'columns' && Array.isArray(b.data?.blocks)) {
         for (const col of b.data.blocks) {

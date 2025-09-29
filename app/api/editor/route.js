@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { deletePageById } from "../../../db/queries/page.queries";
 import { createPage } from "../services/createPage.db.service";
 import { editPageById, getPageById } from "../services/editPageById.db.service";
 import { getAllPagesWithData } from "../services/getAllPagesWithData.db.service";
@@ -148,4 +149,20 @@ function isUrlReferencedInAnyPage(url, pages) {
     if (visit(Array.isArray(data.blocks) ? data.blocks : [])) return true;
   }
   return false;
+}
+
+export async function DELETE(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ ok: false, error: 'Falta id' }, { status: 400 });
+
+    // TODO: Opcional: obtener la página y eliminar imágenes asociadas si no se usan en otras páginas
+    const result = await deletePageById(id);
+    if (!result.ok) return NextResponse.json({ ok: false, error: 'No encontrada' }, { status: 404 });
+    return NextResponse.json({ ok: true, message: 'Página eliminada' }, { status: 200 });
+  } catch (error) {
+    console.error('Error al eliminar página:', error);
+    return NextResponse.json({ ok: false, error: 'Error al eliminar página' }, { status: 500 });
+  }
 }

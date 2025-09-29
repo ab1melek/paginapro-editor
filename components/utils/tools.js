@@ -15,9 +15,11 @@ import ColorButtonTool from '../editorPlugins/ColorButtonTool'
 import ColumnsStyleTune from '../editorPlugins/ColumnsStyleTune'
 import FontEditorTool from '../editorPlugins/FontEditorTool'
 import HeaderWithColor from '../editorPlugins/HeaderWithColor'
+import HeroTool from '../editorPlugins/HeroTool'
 import ListWithColor from '../editorPlugins/ListWithColor'
 import ParagraphWithColor from '../editorPlugins/ParagraphWithColor'
 import QuoteWithColor from '../editorPlugins/QuoteWithColor'
+import SocialIconsTool from '../editorPlugins/SocialIconsTool'
 import TextColorInlineTool from '../editorPlugins/TextColorInlineTool'
 
 export const EDITOR_JS_TOOLS = {
@@ -156,4 +158,10 @@ export const EDITOR_JS_TOOLS = {
           },
         },
       },
+  socialIcons: {
+    class: SocialIconsTool,
+  },
+  hero: {
+    class: HeroTool,
+  },
 }

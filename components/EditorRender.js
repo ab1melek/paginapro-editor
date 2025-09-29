@@ -2,6 +2,7 @@
 
 // Render sin depender de editorjs-react-renderer para asegurar alineaciones
 import { useEffect } from 'react';
+import SocialIcons from './SocialIcons';
 import { calcWeights, getMaxColumnsInBlocks, getNonEmptyColumns, makeContainerClass, normalize } from './utils/editorRender';
 
 export default function EditorRender({ data, device }) {
@@ -41,9 +42,32 @@ export default function EditorRender({ data, device }) {
       : (rawAlign || "left");
 
     switch (block.type) {
+      case "hero": {
+        const d = block.data || {};
+        const o = (hex, a=1) => {
+          if (!hex) return '';
+          const h = hex.replace('#','');
+          const V = h.length===3 ? h.split('').map(c=>c+c).join('') : h;
+          const x = parseInt(V,16); const r=(x>>16)&255, g=(x>>8)&255, b=x&255;
+          return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, a))})`;
+        };
+        const base = d.bg || 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,1))';
+        const heroBgLocal = d.overlayColor && (typeof d.overlayOpacity === 'number') && d.overlayOpacity>0
+          ? `linear-gradient(${o(d.overlayColor, d.overlayOpacity)}, ${o(d.overlayColor, d.overlayOpacity)}), ${base}`
+          : base;
+        return (
+          <section key={block.id} className="landing-hero" style={{ background: heroBgLocal, textAlign: d.align || 'center', paddingTop: (d.paddingTop||72), paddingBottom: (d.paddingBottom||48) }}>
+            {(Array.isArray(d.blocks) ? d.blocks : []).map(inner => renderBlock(inner, false))}
+          </section>
+        );
+      }
       case "pageSettings": {
         // Bloque de control visual, no se renderiza como contenido
         return null;
+      }
+      case "socialIcons": {
+        const d = block.data || {};
+        return <SocialIcons key={block.id} data={d} />;
       }
       case "button": {
         const d = block.data || {};
@@ -274,12 +298,98 @@ export default function EditorRender({ data, device }) {
       ? Math.max(pageSettings?.maxWidth || 780, 780)
       : (pageSettings?.maxWidth || 700);
 
+  const isLanding = pageSettings?.layout === 'landing';
+  const themePrimary = pageSettings?.primaryColor || '#2563eb';
+  const themeText = pageSettings?.textColor || '#0f172a';
+  const heroBase = pageSettings?.heroBackground || pageSettings?.containerBackgroundColor || 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,1))';
+  const overlayHex = pageSettings?.heroOverlayColor || '';
+  const overlayOpacity = typeof pageSettings?.heroOverlayOpacity === 'number' ? pageSettings.heroOverlayOpacity : 0;
+  const hexToRgba = (hex, a=1) => {
+    if (!hex || typeof hex !== 'string') return '';
+    const h = hex.replace('#','');
+    const bigint = parseInt(h.length===3 ? h.split('').map(c=>c+c).join('') : h, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, a))})`;
+  };
+  const heroBg = overlayHex && overlayOpacity > 0
+    ? `linear-gradient(${hexToRgba(overlayHex, overlayOpacity)}, ${hexToRgba(overlayHex, overlayOpacity)}), ${heroBase}`
+    : heroBase;
+
   return (
-    <div
-      className="editor-content-container"
-      style={{ padding: 32, maxWidth: containerMax, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}
-    >
-      {blocks.map(b => renderBlock(b, false))}
+    <div className={isLanding ? 'landing-theme' : undefined}>
+      {isLanding ? (
+        <style>{`
+          .landing-theme .editor-content-container {
+            padding: 0 !important;
+            max-width: ${containerMax}px;
+          }
+          .landing-hero {
+            padding: 72px 24px 48px;
+            background: ${heroBg};
+            text-align: center;
+          }
+          .landing-hero h1 { font-size: 44px; line-height: 1.1; margin: 0 0 12px; letter-spacing: -0.02em; }
+          .landing-hero p  { font-size: 18px; opacity: .85; margin: 0 0 18px; }
+          .landing-cta {
+            display: inline-block; background: ${themePrimary}; color: #fff; padding: 12px 22px; border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(37,99,235,0.25); transition: transform .12s ease, box-shadow .12s ease;
+          }
+          .landing-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(37,99,235,0.32); }
+          .landing-section { padding: 40px 24px; }
+          .landing-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+          .landing-card { background: #fff; border: 1px solid #eef2f7; border-radius: 12px; padding: 18px; box-shadow: 0 4px 14px rgba(20,24,38,0.04); }
+          .landing-card h3 { margin: 0 0 8px; }
+          .landing-theme h1, .landing-theme h2, .landing-theme h3, .landing-theme p { color: ${themeText}; }
+        `}</style>
+      ) : null}
+      <div
+        className="editor-content-container"
+        style={{ padding: 32, maxWidth: containerMax, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}
+      >
+        {blocks.map((b, i) => {
+          // Si existe un bloque hero explícito, renderízalo tal cual
+          if (b.type === 'hero') return renderBlock(b, false);
+          if (!isLanding) return renderBlock(b, false);
+          // Heurística suave: primer header/paragraph/button forman el hero si aparecen al inicio
+          if (i === 0 && b.type === 'header') {
+            const next = blocks[i+1];
+            const next2 = blocks[i+2];
+            if (next?.type === 'paragraph' && (next2?.type === 'button')) {
+              return (
+                <section key={`hero-${b.id}`} className="landing-hero">
+                  {renderBlock(b)}
+                  {renderBlock(next)}
+                  {/* Button con override de clase CTA */}
+                  <div style={{ marginTop: 8 }}>
+                    <a href={next2?.data?.link || '#'} className="landing-cta">{next2?.data?.text || 'Empezar'}</a>
+                  </div>
+                </section>
+              );
+            }
+          }
+          // Si es una sección de columnas de 3, render como cards
+          if (b.type === 'columns') {
+            const nested = b.data?.blocks;
+            if (Array.isArray(nested) && nested.length === 3) {
+              return (
+                <section key={`cards-${b.id}`} className="landing-section">
+                  <div className="landing-cards">
+                    {nested.map((col, idx) => (
+                      <div key={idx} className="landing-card">
+                        {(Array.isArray(col) ? col : (col?.blocks || [])).map(inner => renderBlock(inner))}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            }
+          }
+          // Fallback: render normal
+          return renderBlock(b, false);
+        })}
+      </div>
     </div>
   );
 }
