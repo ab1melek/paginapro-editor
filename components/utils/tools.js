@@ -19,6 +19,7 @@ import HeroTool from '../editorPlugins/HeroTool'
 import ListWithColor from '../editorPlugins/ListWithColor'
 import ParagraphWithColor from '../editorPlugins/ParagraphWithColor'
 import QuoteWithColor from '../editorPlugins/QuoteWithColor'
+import SectionTool from '../editorPlugins/SectionTool'
 import SocialIconsTool from '../editorPlugins/SocialIconsTool'
 import TextColorInlineTool from '../editorPlugins/TextColorInlineTool'
 
@@ -164,4 +165,13 @@ export const EDITOR_JS_TOOLS = {
   hero: {
     class: HeroTool,
   },
+  section: {
+    class: SectionTool,
+  },
 }
+
+// Herramientas para editores anidados (sin sección para evitar recursión infinita)
+export const getNestedTools = () => {
+  const { section, ...nestedTools } = EDITOR_JS_TOOLS;
+  return nestedTools;
+};

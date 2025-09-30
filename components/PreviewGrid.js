@@ -139,7 +139,14 @@ export default function PreviewGrid({ pageData }) {
         {/* If desktop, render a centered full-page container (mimic public page) */}
         {device === 'desktop' ? (
           // Render same layout as public ReadOnlyPage: centered main with padding 32 and maxWidth 700
-          <main style={{ padding: isLanding ? 0 : 32, maxWidth: wantWide ? 900 : (isLanding ? '100%' : 700), margin: '0 auto', width: '100%' }}>
+          <main style={{ 
+            padding: isLanding ? 0 : 32, 
+            maxWidth: wantWide ? 900 : (isLanding ? '100%' : 700), 
+            margin: '0 auto', 
+            width: '100%',
+            minHeight: '100vh',
+            ...(pageSettings?.pageBackgroundColor && { backgroundColor: pageSettings.pageBackgroundColor })
+          }}>
             {isLanding ? (
               <LandingRenderer data={pageData} />
             ) : (
@@ -148,7 +155,10 @@ export default function PreviewGrid({ pageData }) {
           </main>
         ) : (
           <div style={{ width: effective.width + 2, boxSizing: 'content-box', maxWidth: '100%' }}>
-            <div style={frameStyle}>
+            <div style={{
+              ...frameStyle,
+              ...(pageSettings?.pageBackgroundColor && { background: pageSettings.pageBackgroundColor })
+            }}>
               <div
                 style={{
                   position: "sticky",
@@ -167,7 +177,12 @@ export default function PreviewGrid({ pageData }) {
                 <span>{meta.label} viewport</span>
                 <span style={{ opacity: 0.6 }}>{effective.width} × {effective.height}</span>
               </div>
-              <div style={{ padding: isLanding ? 0 : meta.padding, maxWidth: '100%' }}>
+              <div style={{ 
+                padding: isLanding ? 0 : meta.padding, 
+                maxWidth: '100%',
+                minHeight: effective.height - 50, // Subtract header height
+                ...(pageSettings?.pageBackgroundColor && { backgroundColor: pageSettings.pageBackgroundColor })
+              }}>
                 {isLanding ? (
                   <LandingRenderer data={pageData} />
                 ) : (

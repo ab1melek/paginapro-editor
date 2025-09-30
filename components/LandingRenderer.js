@@ -1,3 +1,4 @@
+import SocialIcons from "./SocialIcons";
 import { calcWeights, getMaxColumnsInBlocks, getNonEmptyColumns, normalize } from "./utils/editorRender";
 
 export default function LandingRenderer({ data }) {
@@ -11,9 +12,14 @@ export default function LandingRenderer({ data }) {
   const renderBlock = (block, insideColumn = false, keyPrefix = '') => {
     if (!block) return null;
     const rawAlign = block.tunes?.alignment?.alignment;
-    const align = block.type === "image"
+    let align = block.type === "image"
       ? (rawAlign || "center")
       : (rawAlign || "left");
+    
+    // Para botones, usar la alineación interna si existe
+    if (block.type === "button" && block.data?.align) {
+      align = block.data.align;
+    }
     
     const blockKey = block.id || keyPrefix || `block-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -54,44 +60,55 @@ export default function LandingRenderer({ data }) {
         const Tag = `h${level}`;
         const className = insideColumn ? "pro-header-column" : `pro-header pro-header-${level}`;
         return (
-          <Tag key={blockKey} className={className} style={{ textAlign: align }}>
-            {text}
-          </Tag>
+          <Tag 
+            key={blockKey} 
+            className={className} 
+            style={{ textAlign: align }}
+            dangerouslySetInnerHTML={{ __html: text }}
+          />
         );
       }
       case "paragraph": {
         const text = block.data?.text || "";
         const className = insideColumn ? "pro-paragraph-column" : "pro-paragraph";
+        // Convertir saltos de línea a <br> y usar dangerouslySetInnerHTML para HTML
+        const htmlText = text.replace(/\n/g, '<br>');
         return (
-          <p key={blockKey} className={className} style={{ textAlign: align }}>
-            {text.split('\n').map((line, i) => (
-              <span key={i}>
-                {line}
-                {i < text.split('\n').length - 1 && <br />}
-              </span>
-            ))}
-          </p>
+          <p 
+            key={blockKey} 
+            className={className} 
+            style={{ textAlign: align }}
+            dangerouslySetInnerHTML={{ __html: htmlText }}
+          />
         );
       }
       case "button": {
-        const data = block.data || {};
-        const bgColor = data.bgColor || '#3b82f6';
-        const textColor = data.textColor || '#ffffff';
-        const text = data.text || 'Button';
-        const link = data.link || '#';
+        const buttonText = block.data?.text || "Click aquí";
+        const buttonLink = block.data?.link || "#";
+        const style = block.data?.style || "primary";
+        const backgroundColor = block.data?.bgColor || null;
+        const textColor = block.data?.textColor || null;
+        
+        const baseClass = insideColumn ? "pro-button-column" : "pro-button";
+        const className = `${baseClass} pro-button-${style}`;
+        
+        const buttonStyle = {
+          ...(backgroundColor && { backgroundColor: backgroundColor, borderColor: backgroundColor }),
+          ...(textColor && { color: textColor })
+        };
+
+        // Clase especial para botones con colores personalizados que necesitan hover
+        const hasCustomColors = backgroundColor || textColor;
+        const finalClassName = hasCustomColors ? `${className} pro-button-custom` : className;
         
         return (
           <div key={blockKey} className="pro-button-container" style={{ textAlign: align }}>
-            <a 
-              href={link}
-              className="pro-button"
-              style={{
-                backgroundColor: bgColor,
-                color: textColor,
-              }}
-            >
-              {text}
-            </a>
+            <a
+              href={buttonLink}
+              className={finalClassName}
+              style={buttonStyle}
+              dangerouslySetInnerHTML={{ __html: buttonText }}
+            />
           </div>
         );
       }
@@ -138,6 +155,24 @@ export default function LandingRenderer({ data }) {
           </Tag>
         );
       }
+      case "checklist": {
+        const items = block.data?.items || [];
+        return (
+          <div key={blockKey} className="pro-checklist" style={{ textAlign: align }}>
+            {items.map((item, i) => (
+              <div key={i} className="pro-checklist-item" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '8px 0' }}>
+                <input type="checkbox" checked={item.checked} readOnly style={{ marginTop: '2px' }} />
+                <span dangerouslySetInnerHTML={{ __html: item.text }} />
+              </div>
+            ))}
+          </div>
+        );
+      }
+      case "section": {
+        // Los bloques de sección actúan como separadores invisibles en el renderizado final
+        // Su configuración ya fue aplicada en el agrupamiento de secciones
+        return null;
+      }
       case "columns": {
         const d = block.data || {};
         const cols = getNonEmptyColumns(d.blocks || []);
@@ -159,6 +194,122 @@ export default function LandingRenderer({ data }) {
           </div>
         );
       }
+      case "socialIcons": {
+        const d = block.data || {};
+        return (
+          <div key={blockKey} style={{ textAlign: align }}>
+            <SocialIcons data={d} />
+          </div>
+        );
+      }
+      case "code": {
+        const code = block.data?.code || '';
+        return (
+          <pre key={blockKey} className="pro-code" style={{ 
+            backgroundColor: '#f8f9fa', 
+            border: '1px solid #e9ecef', 
+            borderRadius: '8px', 
+            padding: '16px', 
+            overflow: 'auto', 
+            fontSize: '14px', 
+            fontFamily: 'Monaco, Consolas, monospace',
+            margin: '1rem 0'
+          }}>
+            <code dangerouslySetInnerHTML={{ __html: code }} />
+          </pre>
+        );
+      }
+      case "table": {
+        const d = block.data || {};
+        const content = d.content || [];
+        const withHeadings = d.withHeadings || false;
+        if (!content.length) return null;
+        return (
+          <div key={blockKey} className="pro-table-container" style={{ margin: '1.5rem 0', overflowX: 'auto' }}>
+            <table className="pro-table" style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
+              {content.map((row, i) => (
+                <tr key={i}>
+                  {row.map((cell, j) => {
+                    const Tag = withHeadings && i === 0 ? 'th' : 'td';
+                    return (
+                      <Tag key={j} style={{
+                        padding: '12px',
+                        border: '1px solid #e5e7eb',
+                        backgroundColor: withHeadings && i === 0 ? '#f9fafb' : 'white',
+                        fontWeight: withHeadings && i === 0 ? '600' : 'normal'
+                      }}>
+                        {cell}
+                      </Tag>
+                    );
+                  })}
+                </tr>
+              ))}
+            </table>
+          </div>
+        );
+      }
+      case "delimiter": {
+        return (
+          <div key={blockKey} className="pro-delimiter" style={{ 
+            textAlign: 'center', 
+            margin: '2rem 0',
+            fontSize: '1.5rem',
+            opacity: 0.6
+          }}>
+            ***
+          </div>
+        );
+      }
+      case "warning": {
+        const title = block.data?.title || 'Advertencia';
+        const message = block.data?.message || '';
+        return (
+          <div key={blockKey} className="pro-warning" style={{
+            backgroundColor: '#fef3cd',
+            border: '1px solid #fecf47',
+            borderRadius: '8px',
+            padding: '16px',
+            margin: '1rem 0'
+          }}>
+            <h4 style={{ margin: '0 0 8px', color: '#8a6914' }}>{title}</h4>
+            <p style={{ margin: '0', color: '#8a6914' }} dangerouslySetInnerHTML={{ __html: message }} />
+          </div>
+        );
+      }
+      case "embed": {
+        const service = block.data?.service;
+        const embed = block.data?.embed;
+        const width = block.data?.width || 580;
+        const height = block.data?.height || 320;
+        const caption = block.data?.caption || '';
+        
+        if (!embed) return null;
+        
+        return (
+          <div key={blockKey} className="pro-embed" style={{ margin: '1.5rem 0', textAlign: align }}>
+            <div style={{ position: 'relative', width: '100%', maxWidth: width, margin: '0 auto' }}>
+              <iframe 
+                src={embed} 
+                width={width} 
+                height={height} 
+                style={{ width: '100%', border: 'none', borderRadius: '8px' }}
+                allowFullScreen
+              />
+            </div>
+            {caption && (
+              <p style={{ fontSize: '14px', opacity: 0.8, textAlign: 'center', margin: '8px 0 0' }}>
+                {caption}
+              </p>
+            )}
+          </div>
+        );
+      }
+      case "raw": {
+        const html = block.data?.html || '';
+        return (
+          <div key={blockKey} className="pro-raw" dangerouslySetInnerHTML={{ __html: html }} />
+        );
+      }
       default:
         return (
           <pre key={blockKey} style={{
@@ -178,9 +329,11 @@ export default function LandingRenderer({ data }) {
   const buildStyles = () => {
     if (!pageSettings) return '';
     let css = '';
-    if (pageSettings.backgroundColor) css += `body{background-color:${pageSettings.backgroundColor};}`;
-    if (pageSettings.containerBackgroundColor) {
-      css += `.pro-container{background-color:${pageSettings.containerBackgroundColor};}`;
+    if (pageSettings.backgroundColor) {
+      css += `
+        body { background-color: ${pageSettings.backgroundColor} !important; }
+        .pro-wrapper { background-color: ${pageSettings.backgroundColor}; padding: 20px; min-height: 100vh; }
+      `;
     }
     return css;
   };
@@ -199,12 +352,51 @@ export default function LandingRenderer({ data }) {
 
   // Estilos avanzados para landing profesional
   const proStyles = `
+    .pro-wrapper {
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
     .pro-container {
       padding: 0 !important;
       max-width: ${containerMax}px;
       margin: 0 auto;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
+      color: ${themeText};
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      background-color: #ffffff;
+    }
+
+    .pro-section {
+      padding: 60px 40px;
+    }
+
+    .pro-section.primary {
+      background-color: #ffffff;
+    }
+
+    .pro-section.alternate {
+      background-color: #f8fafc;
+    }
+
+    .pro-section.accent {
+      background-color: ${pageSettings?.primaryColor ? `${pageSettings.primaryColor}10` : '#eff6ff'};
+    }
+
+    .pro-section.hero {
+      background: transparent;
+      padding: 0;
+    }
+
+    .pro-section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      text-align: center;
       color: ${themeText};
     }
 
@@ -252,7 +444,7 @@ export default function LandingRenderer({ data }) {
     .pro-header-2 {
       font-size: clamp(2rem, 4vw, 3rem);
       color: ${themeText};
-      margin: 3rem 0 2rem;
+      margin: 0 0 2rem;
     }
 
     .pro-header-3 {
@@ -292,6 +484,32 @@ export default function LandingRenderer({ data }) {
 
     .pro-button-container {
       margin: 2rem 0;
+      display: block;
+      width: 100%;
+    }
+    
+    .pro-button-container[style*="text-align: center"] .pro-button,
+    .pro-button-container[style*="text-align: center"] .pro-button-column {
+      display: inline-block;
+      margin: 0 auto;
+    }
+    
+    .pro-button-container[style*="text-align: right"] .pro-button,
+    .pro-button-container[style*="text-align: right"] .pro-button-column {
+      display: inline-block;
+      float: right;
+    }
+    
+    .pro-button-container[style*="text-align: left"] .pro-button,
+    .pro-button-container[style*="text-align: left"] .pro-button-column {
+      display: inline-block;
+      float: left;
+    }
+    
+    .pro-button-container::after {
+      content: "";
+      display: table;
+      clear: both;
     }
 
     .pro-button {
@@ -313,12 +531,122 @@ export default function LandingRenderer({ data }) {
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
 
+    .pro-button-primary:not([style*="background"]):not([style*="backgroundColor"]) {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: 2px solid transparent;
+    }
+
+    .pro-button-primary:not([style*="color"]) {
+      color: white;
+    }
+
+    .pro-button-secondary:not([style*="background"]):not([style*="backgroundColor"]) {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border: 2px solid transparent;
+    }
+
+    .pro-button-secondary:not([style*="color"]) {
+      color: white;
+    }
+
+    .pro-button-outline:not([style*="background"]):not([style*="backgroundColor"]) {
+      background: transparent;
+      border: 2px solid #667eea;
+    }
+
+    .pro-button-outline:not([style*="color"]) {
+      color: #667eea;
+    }
+
+    .pro-button-outline:hover:not([style*="background"]):not([style*="backgroundColor"]) {
+      background: #667eea;
+    }
+
+    .pro-button-outline:hover:not([style*="color"]) {
+      color: white;
+    }
+
+    .pro-button-success:not([style*="background"]):not([style*="backgroundColor"]) {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: 2px solid transparent;
+    }
+
+    .pro-button-success:not([style*="color"]) {
+      color: white;
+    }
+
+    .pro-button-column {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transform: translateY(0);
+      margin-top: 1rem;
+    }
+
+    .pro-button-column:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .pro-button-column.pro-button-primary:not([style*="background"]):not([style*="backgroundColor"]) {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: 2px solid transparent;
+    }
+
+    .pro-button-column.pro-button-primary:not([style*="color"]) {
+      color: white;
+    }
+
+    .pro-button-column.pro-button-secondary:not([style*="background"]):not([style*="backgroundColor"]) {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border: 2px solid transparent;
+    }
+
+    .pro-button-column.pro-button-secondary:not([style*="color"]) {
+      color: white;
+    }
+
+    .pro-button-column.pro-button-outline:not([style*="background"]):not([style*="backgroundColor"]) {
+      background: transparent;
+      border: 2px solid #667eea;
+    }
+
+    .pro-button-column.pro-button-outline:not([style*="color"]) {
+      color: #667eea;
+    }
+
+    .pro-button-column.pro-button-success:not([style*="background"]):not([style*="backgroundColor"]) {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: 2px solid transparent;
+    }
+
+    .pro-button-column.pro-button-success:not([style*="color"]) {
+      color: white;
+    }
+
+    /* Hover para botones con colores personalizados */
+    .pro-button-custom:hover,
+    .pro-button-column.pro-button-custom:hover {
+      filter: brightness(0.85);
+      transform: translateY(-2px);
+    }
+
+    .pro-button-column.pro-button-custom:hover {
+      transform: translateY(-1px);
+    }
+
     .pro-columns {
       display: grid;
       gap: 2rem;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      margin: 4rem 0;
-      padding: 0 2rem;
+      margin: 2rem 0;
     }
 
     .pro-columns.four-columns {
@@ -412,6 +740,51 @@ export default function LandingRenderer({ data }) {
       line-height: 1.6;
     }
 
+    .pro-checklist {
+      margin: 1rem 0;
+    }
+
+    .pro-checklist-item {
+      margin: 0.5rem 0;
+      line-height: 1.6;
+    }
+
+    .pro-social-icons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .pro-code {
+      font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+      line-height: 1.5;
+    }
+
+    .pro-table {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .pro-delimiter {
+      color: #6b7280;
+      font-weight: 300;
+      letter-spacing: 0.5em;
+    }
+
+    .pro-warning {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .pro-embed {
+      position: relative;
+    }
+
+    .pro-embed iframe {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    }
+
     /* Responsive Design */
     @media (max-width: 1200px) {
       .pro-columns.four-columns {
@@ -420,14 +793,25 @@ export default function LandingRenderer({ data }) {
     }
 
     @media (max-width: 768px) {
+      .pro-wrapper {
+        padding: 12px;
+      }
+
+      .pro-container {
+        border-radius: 8px;
+      }
+
+      .pro-section {
+        padding: 40px 20px;
+      }
+
       .pro-columns,
       .pro-columns.four-columns,
       .pro-columns.three-columns,
       .pro-columns.two-columns {
         grid-template-columns: 1fr;
         gap: 1.5rem;
-        padding: 0 1rem;
-        margin: 2rem 0;
+        margin: 1.5rem 0;
       }
 
       .pro-column {
@@ -450,6 +834,14 @@ export default function LandingRenderer({ data }) {
     }
 
     @media (max-width: 480px) {
+      .pro-wrapper {
+        padding: 8px;
+      }
+
+      .pro-section {
+        padding: 30px 16px;
+      }
+
       .pro-column {
         padding: 1rem;
       }
@@ -480,12 +872,112 @@ export default function LandingRenderer({ data }) {
     }
   `;
 
+  // Agrupar bloques en secciones usando separadores
+  const groupBlocksIntoSections = (blocks) => {
+    const sections = [];
+    let currentSection = { blocks: [], bgType: 'primary', title: '' };
+    let sectionIndex = 0;
+    
+    blocks.forEach((block, index) => {
+      // Bloque separador de sección
+      if (block.type === 'section') {
+        // Finalizar sección actual si tiene contenido
+        if (currentSection.blocks.length > 0) {
+          sections.push(currentSection);
+        }
+        
+        // Iniciar nueva sección con la configuración del separador
+        const bgType = block.data?.backgroundColor === 'custom' ? 'custom' : 'primary';
+          
+        currentSection = { 
+          blocks: [], 
+          bgType,
+          customColor: block.data?.customColor,
+          opacity: block.data?.opacity,
+          title: block.data?.title || '',
+          isUserDefined: true 
+        };
+        sectionIndex++;
+        return;
+      }
+      
+      // El hero siempre es su propia sección
+      if (block.type === 'hero') {
+        if (currentSection.blocks.length > 0) {
+          sections.push(currentSection);
+        }
+        sections.push({ 
+          blocks: [block], 
+          bgType: 'hero',
+          title: '',
+          isUserDefined: false 
+        });
+        // Reiniciar para la siguiente sección
+        currentSection = { blocks: [], bgType: sectionIndex % 2 === 0 ? 'primary' : 'alternate', title: '' };
+        return;
+      }
+      
+      // Agrupación automática: los headers h2 inician nueva sección si no hay separadores manuales
+      if (block.type === 'header' && block.data?.level === 2 && currentSection.blocks.length > 0) {
+        const hasManualSections = blocks.some(b => b.type === 'section');
+        if (!hasManualSections) {
+          sections.push(currentSection);
+          currentSection = { 
+            blocks: [block], 
+            bgType: sectionIndex % 2 === 0 ? 'primary' : 'alternate',
+            title: '' 
+          };
+          sectionIndex++;
+        } else {
+          currentSection.blocks.push(block);
+        }
+      } else {
+        currentSection.blocks.push(block);
+      }
+    });
+    
+    // Agregar la última sección si existe
+    if (currentSection.blocks.length > 0) {
+      sections.push(currentSection);
+    }
+    
+    return sections;
+  };
+
+  const sections = groupBlocksIntoSections(blocks);
+
   return (
     <>
       {buildStyles() ? <style dangerouslySetInnerHTML={{ __html: buildStyles() }} /> : null}
       <style dangerouslySetInnerHTML={{ __html: proStyles }} />
-      <div className="pro-container">
-        {blocks.map((b, index) => renderBlock(b, false, `main-${index}`))}
+      <div className="pro-wrapper">
+        <div className="pro-container">
+          {sections.map((section, sectionIndex) => {
+            const bgType = section.bgType || 'primary';
+            
+            // Calcular color de fondo con opacidad si es custom
+            let sectionBgStyle = {};
+            if (bgType === 'custom' && section.customColor) {
+              const hex = section.customColor.replace('#', '');
+              const r = parseInt(hex.substr(0, 2), 16);
+              const g = parseInt(hex.substr(2, 2), 16);  
+              const b = parseInt(hex.substr(4, 2), 16);
+              const opacity = section.opacity || 1;
+              sectionBgStyle.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+            }
+            const sectionClass = `pro-section ${bgType}`;
+            const hasTitle = section.title && section.title.trim();
+            
+            return (
+              <div key={`section-${sectionIndex}`} className={sectionClass} style={sectionBgStyle}>
+                {hasTitle && (
+                  <h2 className="pro-section-title">{section.title}</h2>
+                )}
+                {section.blocks.map((block, blockIndex) => renderBlock(block, false, `section-${sectionIndex}-block-${blockIndex}`))}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </>
   );

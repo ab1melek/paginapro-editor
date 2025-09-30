@@ -9,8 +9,14 @@ export default function ReadOnlyPage({ pageData }) {
   const { pageSettings } = normalize(pageData);
   const isLanding = pageSettings?.layout === 'landing';
   
+  // Aplicar estilos de página (backgroundColor, etc.)
+  const pageStyle = {
+    ...(pageSettings?.pageBackgroundColor && { backgroundColor: pageSettings.pageBackgroundColor }),
+    minHeight: '100vh'
+  };
+  
   return (
-    <main>
+    <main style={pageStyle}>
       {isLanding ? (
         <LandingRenderer data={pageData} />
       ) : (
