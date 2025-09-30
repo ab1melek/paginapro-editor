@@ -6,6 +6,7 @@ import { hasFourColumnsInBlocks, normalize } from './utils/editorRender';
 
 const EditorRender = dynamic(() => import("./EditorRender"), { ssr: false });
 const LandingRenderer = dynamic(() => import("./LandingRenderer"), { ssr: false });
+const MislinksRenderer = dynamic(() => import("./MislinksRenderer"), { ssr: false });
 
 const DEVICES = {
   desktop: { label: "Desktop", width: 1200, height: 800, padding: 24 },
@@ -43,6 +44,7 @@ export default function PreviewGrid({ pageData }) {
   const { blocks, pageSettings } = normalize(pageData);
   const wantWide = hasFourColumnsInBlocks(blocks);
   const isLanding = pageSettings?.layout === 'landing';
+  const isMislinks = pageSettings?.layout === 'mislinks';
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -141,7 +143,7 @@ export default function PreviewGrid({ pageData }) {
           // Render same layout as public ReadOnlyPage: centered main with padding 32 and maxWidth 700
           <main style={{ 
             padding: isLanding ? 0 : 32, 
-            maxWidth: wantWide ? 900 : (isLanding ? '100%' : 700), 
+              maxWidth: wantWide ? 900 : ((isLanding || isMislinks) ? '100%' : 700), 
             margin: '0 auto', 
             width: '100%',
             minHeight: '100vh',
@@ -149,6 +151,8 @@ export default function PreviewGrid({ pageData }) {
           }}>
             {isLanding ? (
               <LandingRenderer data={pageData} />
+            ) : isMislinks ? (
+              <MislinksRenderer data={pageData} />
             ) : (
               <EditorRender data={pageData} device={device} />
             )}
@@ -178,13 +182,15 @@ export default function PreviewGrid({ pageData }) {
                 <span style={{ opacity: 0.6 }}>{effective.width} × {effective.height}</span>
               </div>
               <div style={{ 
-                padding: isLanding ? 0 : meta.padding, 
+                  padding: (isLanding || isMislinks) ? 0 : meta.padding, 
                 maxWidth: '100%',
                 minHeight: effective.height - 50, // Subtract header height
                 ...(pageSettings?.pageBackgroundColor && { backgroundColor: pageSettings.pageBackgroundColor })
               }}>
                 {isLanding ? (
                   <LandingRenderer data={pageData} />
+                ) : isMislinks ? (
+                  <MislinksRenderer data={pageData} />
                 ) : (
                   <EditorRender data={pageData} device={device} />
                 )}
