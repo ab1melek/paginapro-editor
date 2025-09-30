@@ -959,12 +959,17 @@ export default function LandingRenderer({ data }) {
             // Calcular color de fondo con opacidad si es custom
             let sectionBgStyle = {};
             if (bgType === 'custom' && section.customColor) {
-              const hex = section.customColor.replace('#', '');
+              // Soporte para #rgb y #rrggbb
+              const raw = section.customColor.replace('#', '');
+              const hex = raw.length === 3
+                ? raw.split('').map(c => c + c).join('')
+                : raw;
               const r = parseInt(hex.substr(0, 2), 16);
-              const g = parseInt(hex.substr(2, 2), 16);  
+              const g = parseInt(hex.substr(2, 2), 16);
               const b = parseInt(hex.substr(4, 2), 16);
-              const opacity = section.opacity || 1;
-              sectionBgStyle.backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+              const opacity = typeof section.opacity === 'number' ? section.opacity : (section.opacity || 1);
+              // Base blanca con overlay del color a la opacidad indicada
+              sectionBgStyle.background = `linear-gradient(rgba(${r}, ${g}, ${b}, ${opacity}), rgba(${r}, ${g}, ${b}, ${opacity})), #ffffff`;
             }
             const sectionClass = `pro-section ${bgType}`;
             const hasTitle = section.title && section.title.trim();
