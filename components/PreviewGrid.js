@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { hasFourColumnsInBlocks, normalize } from './utils/editorRender';
 
 const EditorRender = dynamic(() => import("./EditorRender"), { ssr: false });
+const LandingRenderer = dynamic(() => import("./LandingRenderer"), { ssr: false });
 
 const DEVICES = {
   desktop: { label: "Desktop", width: 1200, height: 800, padding: 24 },
@@ -39,8 +40,9 @@ export default function PreviewGrid({ pageData }) {
   };
 
   // Detectar si hay 4 columnas para ajustar ancho en Desktop preview
-  const { blocks } = normalize(pageData);
+  const { blocks, pageSettings } = normalize(pageData);
   const wantWide = hasFourColumnsInBlocks(blocks);
+  const isLanding = pageSettings?.layout === 'landing';
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -137,8 +139,12 @@ export default function PreviewGrid({ pageData }) {
         {/* If desktop, render a centered full-page container (mimic public page) */}
         {device === 'desktop' ? (
           // Render same layout as public ReadOnlyPage: centered main with padding 32 and maxWidth 700
-          <main style={{ padding: 32, maxWidth: wantWide ? 900 : 700, margin: '0 auto', width: '100%' }}>
-            <EditorRender data={pageData} device={device} />
+          <main style={{ padding: isLanding ? 0 : 32, maxWidth: wantWide ? 900 : (isLanding ? '100%' : 700), margin: '0 auto', width: '100%' }}>
+            {isLanding ? (
+              <LandingRenderer data={pageData} />
+            ) : (
+              <EditorRender data={pageData} device={device} />
+            )}
           </main>
         ) : (
           <div style={{ width: effective.width + 2, boxSizing: 'content-box', maxWidth: '100%' }}>
@@ -161,8 +167,12 @@ export default function PreviewGrid({ pageData }) {
                 <span>{meta.label} viewport</span>
                 <span style={{ opacity: 0.6 }}>{effective.width} × {effective.height}</span>
               </div>
-              <div style={{ padding: meta.padding, maxWidth: '100%' }}>
-                <EditorRender data={pageData} device={device} />
+              <div style={{ padding: isLanding ? 0 : meta.padding, maxWidth: '100%' }}>
+                {isLanding ? (
+                  <LandingRenderer data={pageData} />
+                ) : (
+                  <EditorRender data={pageData} device={device} />
+                )}
               </div>
             </div>
           </div>

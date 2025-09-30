@@ -11,6 +11,31 @@ const Editor = dynamic(() => import("../../../components/Editor"), {
   ssr: false,
 });
 
+// Función para generar un slug único
+const generateUniqueSlug = async (baseSlug) => {
+  let slug = baseSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  let counter = 0;
+  let uniqueSlug = slug;
+  
+  while (true) {
+    try {
+      // Verificar si el slug existe
+      const response = await fetch(`/api/editor?slug=${uniqueSlug}`);
+      if (response.status === 404) {
+        // Slug disponible
+        return uniqueSlug;
+      }
+      // Slug existe, intentar con siguiente número
+      counter++;
+      uniqueSlug = `${slug}-${counter}`;
+    } catch (error) {
+      console.error("Error verificando slug:", error);
+      // En caso de error, usar timestamp como fallback
+      return `${slug}-${Date.now()}`;
+    }
+  }
+};
+
 const callEditorService = async (data, isEditing) => {
   try {
     const method = isEditing ? "PUT" : "POST";
@@ -20,11 +45,19 @@ const callEditorService = async (data, isEditing) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error("Fallo en el guardado");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (errorData.error === "Slug ya existe") {
+        throw new Error("El nombre de la página ya está en uso. Por favor, elige otro nombre.");
+      }
+      throw new Error("Fallo en el guardado");
+    }
     return await response.json();
   } catch (error) {
     console.error("Error al enviar los datos al servidor:", error);
-    alert("Error al enviar los datos al servidor");
+    const message = error.message || "Error al enviar los datos al servidor";
+    alert(message);
+    throw error;
   }
 };
 

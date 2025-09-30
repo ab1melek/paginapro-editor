@@ -10,9 +10,22 @@ export default function DashboardPage() {
 
   // Obtener las páginas existentes
   const fetchPages = async () => {
-    const response = await fetch("/api/editor");
-    const data = await response.json();
-    setPages(data);
+    try {
+      console.log("Obteniendo lista de páginas...");
+      const response = await fetch("/api/editor");
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Páginas obtenidas:", data);
+      setPages(data || []);
+    } catch (error) {
+      console.error("Error al obtener páginas:", error);
+      alert(`Error al cargar las páginas: ${error.message}`);
+      setPages([]); // Lista vacía como fallback
+    }
   };
 
   // Manejar la creación de una nueva página
@@ -38,21 +51,44 @@ export default function DashboardPage() {
 
   // Manejar la eliminación de una página
   const handleDelete = async (id) => {
+    if (!id) {
+      console.error("ID de página no válido:", id);
+      alert("Error: ID de página no válido");
+      return;
+    }
+
     const confirmDelete = confirm("¿Estás seguro de que deseas eliminar esta página?");
     if (confirmDelete) {
       try {
-        const response = await fetch(`/api/editor?id=${id}`, { method: "DELETE" });
+        console.log("Eliminando página con ID:", id);
+        const response = await fetch(`/api/editor?id=${encodeURIComponent(id)}`, { 
+          method: "DELETE",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        console.log("Respuesta de eliminación:", response.status, response.statusText);
+        
         let result = null;
-        try { result = await response.json(); } catch {}
+        try { 
+          result = await response.json(); 
+          console.log("Resultado de eliminación:", result);
+        } catch (jsonError) {
+          console.warn("No se pudo parsear JSON de respuesta:", jsonError);
+        }
+        
         if (response.ok) {
-          alert(result?.message || 'Página eliminada');
-          fetchPages();
+          alert(result?.message || 'Página eliminada correctamente');
+          await fetchPages(); // Recargar la lista
         } else {
-          alert(result?.error || 'No se pudo eliminar');
+          const errorMsg = result?.error || `Error ${response.status}: ${response.statusText}`;
+          console.error("Error del servidor:", errorMsg);
+          alert(`No se pudo eliminar la página: ${errorMsg}`);
         }
       } catch (error) {
         console.error("Error al eliminar la página:", error);
-        alert("Error al eliminar la página");
+        alert(`Error de conexión al eliminar la página: ${error.message}`);
       }
     }
   };
