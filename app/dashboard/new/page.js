@@ -1,8 +1,12 @@
 "use client";
 
+import { useSearchParams } from 'next/navigation';
 import TemplatePicker from '../../../components/TemplatePicker';
+import { templates } from '../../templates';
 
 export default function NewPageWithTemplate() {
+  const searchParams = useSearchParams();
+  const preset = searchParams.get('template');
   const handleSelect = (data) => {
     try {
       const key = `preview-${Date.now()}`;
@@ -14,6 +18,15 @@ export default function NewPageWithTemplate() {
       window.location.href = '/dashboard/editor';
     }
   };
+
+  // Si viene ?template=, cargarla directamente
+  if (preset) {
+    const tpl = templates.find(t => t.id === preset);
+    if (tpl?.data) {
+      handleSelect(tpl.data);
+      return null;
+    }
+  }
 
   return <TemplatePicker onSelect={handleSelect} onCancel={() => (window.location.href = '/dashboard')} />;
 }

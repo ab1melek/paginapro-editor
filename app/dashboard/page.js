@@ -33,6 +33,8 @@ export default function DashboardPage() {
     router.push(`/dashboard/new`); // Redirigir al selector de plantillas
   };
 
+  // (Eliminado) Quick create por plantilla directa para simplificar la barra
+
   // Manejar la edición de una página: primero obtener y loguear datos
   const handleEdit = async (id) => {
     try {
@@ -98,12 +100,28 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <main style={{ padding: 20 }}>
-      <h1>Dashboard</h1>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-        <button onClick={handleCreate}>
-        Crear nueva página
-        </button>
+    <main style={{ padding: 24 }}>
+      <div style={{ 
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+        border: '1px solid #e9ecef', borderRadius: 12, padding: '12px 16px', marginBottom: 16,
+        background: '#fff', boxShadow: 'inset 0 -1px 0 #f1f1f1'
+      }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 22 }}>Dashboard</h1>
+          <p style={{ margin: 0, opacity: 0.7, fontSize: 13 }}>Administra tus páginas</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={handleCreate} style={{
+            padding: '10px 14px', borderRadius: 8, border: '1px solid #374151', background: '#374151', color: '#fff', cursor: 'pointer', fontWeight: 700
+          }}>
+            + Crear desde plantilla
+          </button>
+          <button onClick={() => router.push(`/dashboard/editor?slug=${encodeURIComponent(process.env.NEXT_PUBLIC_HOME_SLUG || 'paginaprolanding')}`)} style={{
+            padding: '10px 14px', borderRadius: 8, border: '1px solid #111827', background: '#111827', color: '#fff', cursor: 'pointer', fontWeight: 700
+          }}>
+            Editar portada
+          </button>
+        </div>
       </div>
       <PageList pages={pages} onEdit={handleEdit} onDelete={handleDelete} />
     </main>

@@ -61,10 +61,29 @@ const callEditorService = async (data, isEditing) => {
   }
 };
 
+// Normalizador de slug: minúsculas, sin acentos, con guiones
+const toSlug = (value) => {
+  try {
+    if (!value) return '';
+    return value
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // quitar acentos
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+  } catch {
+    return '';
+  }
+};
+
 function EditorPageInner() {
   const editorRef = useRef(null);
   const searchParams = useSearchParams();
   const pageId = searchParams.get("id");
+  const pageSlug = searchParams.get("slug");
   const previewKey = searchParams.get("previewKey");
   const [initialData, setInitialData] = useState(null);
   const [pageStyle, setPageStyle] = useState({ backgroundColor: '#ffffff', containerBackgroundColor: '#ffffff' });
@@ -87,9 +106,9 @@ function EditorPageInner() {
         }
       }
 
-      if (!pageId) return;
+      if (!pageId && !pageSlug) return;
       try {
-        const res = await fetch(`/api/editor?id=${pageId}`);
+        const res = pageId ? await fetch(`/api/editor?id=${pageId}`) : await fetch(`/api/editor?slug=${encodeURIComponent(pageSlug)}`);
         if (res.ok) {
           const data = await res.json();
           console.log("[Editor] Datos cargados para edición:", data);
@@ -114,7 +133,7 @@ function EditorPageInner() {
       }
     };
     loadPage();
-  }, [pageId, previewKey]);
+  }, [pageId, pageSlug, previewKey]);
 
   // Aplicar estilos inmediatos al cambiar pageStyle (modo edición)
   useEffect(() => {
@@ -158,14 +177,21 @@ function EditorPageInner() {
           ...(pageStyle?.containerBackgroundColor ? { containerBackgroundColor: pageStyle.containerBackgroundColor } : {}),
         };
         
-        // Solicitar el nombre de la página si no está presente
+        // Solicitar el título/slug si no está presente
         if (!savedData.slug) {
-          const slug = prompt("Ingresa el nombre de la nueva página:");
-          if (!slug || slug.trim() === "") {
-            alert("El nombre de la página no puede estar vacío.");
+          const input = prompt("Ingresa el título (se usará como slug para la URL):");
+          const slug = toSlug(input || '');
+          if (!slug) {
+            alert("El título/slug no puede estar vacío.");
             return; // Detener el guardado si no hay un nombre válido
           }
-          savedData.slug = slug; // Asignar el nombre ingresado
+          savedData.slug = slug; // Guardar slug normalizado
+          // Guardar nombre visible: usa el input original si existe, sino el slug
+          if (!savedData.name) savedData.name = input || slug;
+        } else {
+          // Normalizar slug existente por consistencia
+          savedData.slug = toSlug(savedData.slug);
+          if (!savedData.name) savedData.name = savedData.slug;
         }
 
   // Si estamos editando, aseguramos que mantenga el id original
