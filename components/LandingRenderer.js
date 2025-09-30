@@ -349,6 +349,7 @@ export default function LandingRenderer({ data }) {
   const themePrimary = pageSettings?.primaryColor || '#3b82f6';
   const themeAccent = pageSettings?.accentColor || '#10b981';
   const themeText = pageSettings?.textColor || '#1e293b';
+  const containerBgColor = pageSettings?.containerBackgroundColor || '#f8fafc';
 
   // Estilos avanzados para landing profesional
   const proStyles = `
@@ -368,7 +369,7 @@ export default function LandingRenderer({ data }) {
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      background-color: #ffffff;
+      background-color: transparent;
     }
 
     .pro-section {
@@ -376,11 +377,11 @@ export default function LandingRenderer({ data }) {
     }
 
     .pro-section.primary {
-      background-color: #ffffff;
+      background-color: ${containerBgColor};
     }
 
     .pro-section.alternate {
-      background-color: #f8fafc;
+      background-color: ${containerBgColor};
     }
 
     .pro-section.accent {
