@@ -95,3 +95,34 @@ Dónde mirar si algo falla
 - `components/ReadOnlyPage.js` y `components/PreviewGrid.js` — wrappers que controlan el `maxWidth` usado en publicación y preview.
 
 Fin de cambios de rama.
+
+Cambios recientes importantes (blob, uploader, GC, migración, métricas, seeders)
+--------------------------------------------------------------------------------
+- Integración con Vercel Blob para subir y borrar blobs desde el backend. Archivos clave:
+	- `app/api/services/images.services.js` (usa `@vercel/blob` `put`/`del`, sanea slug, límite 2MB, whitelist PNG/JPEG).
+	- `app/api/images/route.js` (API de upload/delete que normaliza slug y llama al servicio).
+
+- Uploader cliente con prefijo por `slug` y feedback UX:
+	- `components/utils/tools.js` (uploader personalizado que pasa `slug` en FormData y header, toasts y pre-check 2MB).
+	- `components/Editor.js` y `app/dashboard/editor/page.js` (exponen y piden el `slug` antes de montar el editor para evitar que las subidas caigan en `general/`).
+	- `components/editorPlugins/HeroTool.js` (subida de fondo ahora incluye `slug`).
+
+- Limpieza / Garbage Collection y migración de blobs:
+	- `app/api/images/gc/route.js` (endpoint de GC que borra blobs no referenciados).
+	- `scripts/cleanOrphanBlobs.js` y `scripts/migrate_page_blobs.js` (CLI para listar/eliminar o migrar blobs de `general/` a `<slug>/` y actualizar DB JSON).
+
+- Borrado referenciado en edición/elim. de páginas:
+	- `app/api/editor/route.js` (cuando se edita o borra una página, se detectan URLs removidas y se borran si no hay referencias en otras páginas).
+
+- Métricas y observabilidad:
+	- `app/api/services/images.metrics.js` (contadores simples de uploads/deletes).
+	- `app/api/images/metrics/route.js` (endpoint para leer métricas básicas).
+
+- Seeders y datos de ejemplo:
+	- `db/seed_paginaprolanding.json`, `db/seedPages.js`, `db/seed_single.js` (seeder para landing y upsert por slug).
+
+Notas rápidas de uso / prueba
+ - Para migrar assets de `general/` a un slug: `node scripts/migrate_page_blobs.js --slug paginaprolanding --dry` (ver resultados) y luego sin `--dry` para ejecutar.
+ - Para probar uploads locales: `npm run dev`, abrir `/dashboard/editor?slug=<tu-slug>` y subir una imagen; verificar en Vercel storage que el path sea `<slug>/...`.
+
+Si quieres, puedo añadir un pequeño badge en la barra superior del editor que muestre el `slug` actual y permita cambiarlo antes del primer guardado (UX sugerida).
