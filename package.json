@@ -41,6 +41,7 @@
     "@editorjs/table": "^2.4.5",
     "@editorjs/warning": "^1.4.1",
     "@pluginjs/font-editor": "^0.8.18",
+    "@vercel/blob": "^2.0.0",
     "dotenv": "^17.2.1",
     "editorjs-button": "^3.0.3",
     "editorjs-color-picker": "^1.0.8",

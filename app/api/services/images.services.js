@@ -1,11 +1,14 @@
+
+import { del, put } from "@vercel/blob";
 import fs from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
-import { BLOB } from '../../../lib/config.js';
+
 
 const IMAGE_DIR = path.join(process.cwd(), "public", "uploads"); // Ruta para guardar las imágenes
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 const VALID_MIME_TYPES = ["image/png", "image/jpeg"];
+const VERCEL_BLOB_TOKEN = process.env.PAGINAPRO_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN;
 
 // Soporta subir a un servidor de blobs local (compatible con dev/blob-server.js)
 // Configure BLOB_URL en .env (por ejemplo: http://localhost:4001)
@@ -20,29 +23,18 @@ export async function saveImage(file) {
     throw new Error("El archivo supera el límite de 2 MB");
   }
 
-  const blobUrl = BLOB?.url || null;
-  if (blobUrl) {
-    // Subir al blob server remoto (dev)
-    const form = new FormData();
-    const buf = Buffer.from(await file.arrayBuffer());
-    // En Node/Next la Web API FormData acepta Blobs/Files; usamos Blob de la plataforma
-    const blob = new Blob([buf], { type: file.type });
-    form.append('file', blob, file.name || `${uuidv4()}.png`);
-
-    const res = await fetch(`${blobUrl.replace(/\/$/, '')}/upload`, {
-      method: 'POST',
-      body: form,
+  // Si hay token de Vercel Blob, sube ahí
+  if (VERCEL_BLOB_TOKEN) {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const ext = file.name?.split('.').pop() || 'png';
+    const filename = `${uuidv4()}.${ext}`;
+    const upload = await put(filename, buffer, {
+      access: 'public',
+      token: VERCEL_BLOB_TOKEN,
+      contentType: file.type,
     });
-    if (!res.ok) {
-      const text = await res.text().catch(() => 'error');
-      throw new Error(`Blob upload failed: ${res.status} ${text}`);
-    }
-    const json = await res.json();
-    // El blob server devuelve { id, url, filename }
-    if (json?.url) return json.url;
-    // fallback a id relativo
-    if (json?.id) return `${blobUrl.replace(/\/$/, '')}/blob/${encodeURIComponent(json.id)}`;
-    throw new Error('Blob server returned unexpected response');
+    return upload.url;
   }
 
   // Fallback: guardar localmente en public/uploads
@@ -58,32 +50,20 @@ export async function deleteImage(imageUrl) {
   try {
     if (!imageUrl || typeof imageUrl !== 'string') return true;
 
-    const blobUrl = BLOB?.url || null;
-    // Caso blob server: URLs tipo http(s)://host:port/blob/<id>
-    if (blobUrl) {
+    // Si es una URL de Vercel Blob y hay token, intenta borrar
+    if (VERCEL_BLOB_TOKEN) {
       try {
         const u = new URL(imageUrl);
-        const b = new URL(blobUrl);
-        const isBlobPath = u.pathname.startsWith('/blob/');
-        if (isBlobPath) {
-          const id = decodeURIComponent(u.pathname.split('/').pop() || '');
-          if (!id) return false;
-          // En dev, apuntamos el DELETE siempre al origin de BLOB_URL para garantizar borrado
-          const del = await fetch(`${b.origin}/blob/${encodeURIComponent(id)}`, { method: 'DELETE' });
-          if (del.status === 204) return true;
-          if (del.status === 404) {
-            // Verificar si realmente no existe
-            try {
-              const chk = await fetch(`${b.origin}/blob/${encodeURIComponent(id)}`, { method: 'GET' });
-              return chk.status === 404;
-            } catch {
-              // Si el GET falla por red, asumimos no existente
-              return true;
-            }
-          }
-          return false;
+        const host = u.hostname || '';
+        // Vercel Blob v2 usa dominios *.vercel-storage.com
+        const isVercelBlob = host.endsWith('vercel-storage.com') || host.includes('.blob.vercel-storage.com');
+        if (isVercelBlob) {
+          await del(imageUrl, { token: VERCEL_BLOB_TOKEN });
+          return true;
         }
-      } catch {}
+      } catch {
+        // Si no es una URL válida, seguimos con otros casos
+      }
     }
 
     // Caso local: rutas relativas bajo /uploads/

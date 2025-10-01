@@ -111,6 +111,14 @@ function collectImageUrls(root) {
           const u = b.data?.file?.url || b.data?.url;
           if (typeof u === 'string' && u) set.add(u);
         }
+        // hero: extrae url(...) de data.bg si existe
+        if (b.type === 'hero' && b.data && typeof b.data.bg === 'string') {
+          const m = b.data.bg.match(/url\(([^)]+)\)/i);
+          if (m && m[1]) {
+            const raw = m[1].replace(/['"]/g, '');
+            if (raw) set.add(raw);
+          }
+        }
         if (b.type === 'columns' && Array.isArray(b.data?.blocks)) {
           for (const col of b.data.blocks) {
             const colBlocks = Array.isArray(col) ? col : (col?.blocks || []);
@@ -135,6 +143,14 @@ function isUrlReferencedInAnyPage(url, pages) {
         const u = b.data?.file?.url || b.data?.url;
         if (u === url) return true;
       }
+      // hero: coincide contra url(...) en bg
+      if (b.type === 'hero' && b.data && typeof b.data.bg === 'string') {
+        const m = b.data.bg.match(/url\(([^)]+)\)/i);
+        if (m && m[1]) {
+          const raw = m[1].replace(/['"]/g, '');
+          if (raw === url) return true;
+        }
+      }
       if (b.type === 'columns' && Array.isArray(b.data?.blocks)) {
         for (const col of b.data.blocks) {
           const colBlocks = Array.isArray(col) ? col : (col?.blocks || []);
@@ -157,10 +173,34 @@ export async function DELETE(req) {
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ ok: false, error: 'Falta id' }, { status: 400 });
 
-    // TODO: Opcional: obtener la página y eliminar imágenes asociadas si no se usan en otras páginas
+    // Obtener la página antes de eliminarla para conocer sus imágenes
+    let pageBefore = null;
+    try {
+      pageBefore = await getPageById(id);
+    } catch {}
+
     const result = await deletePageById(id);
     if (!result.ok) return NextResponse.json({ ok: false, error: 'No encontrada' }, { status: 404 });
-    return NextResponse.json({ ok: true, message: 'Página eliminada' }, { status: 200 });
+
+    // Intentar borrar imágenes que eran exclusivas de esta página
+    let imagesDeleted = 0;
+    if (pageBefore) {
+      try {
+        const urls = Array.from(collectImageUrls(pageBefore));
+        if (urls.length) {
+          const pages = await getAllPagesWithData(); // ya no incluye la borrada
+          const toDelete = urls.filter((u) => !isUrlReferencedInAnyPage(u, pages));
+          if (toDelete.length) {
+            const outs = await Promise.allSettled(toDelete.map(u => deleteImage(u)));
+            imagesDeleted = outs.filter(o => o.status === 'fulfilled' && o.value === true).length;
+          }
+        }
+      } catch (e) {
+        console.warn('[DELETE /api/editor] limpieza de imágenes falló', e);
+      }
+    }
+
+    return NextResponse.json({ ok: true, message: 'Página eliminada', imagesDeleted }, { status: 200 });
   } catch (error) {
     console.error('Error al eliminar página:', error);
     return NextResponse.json({ ok: false, error: 'Error al eliminar página' }, { status: 500 });
