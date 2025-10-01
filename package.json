@@ -13,7 +13,9 @@
     "db:check": "node db/healthcheck.js",
     "db:up": "docker run --name editor-pg -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USER=postgres -e POSTGRES_DB=postgres -d postgres:15",
     "db:down": "docker rm -f editor-pg",
-    "blob:dev": "node dev/blob-server.js"
+  "blob:dev": "node dev/blob-server.js",
+  "db:seed:landing": "node db/seed_single.js paginaprolanding",
+  "db:seed": "node db/seedPages.js"
   },
   "repository": {
     "type": "git",

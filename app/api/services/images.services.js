@@ -3,6 +3,7 @@ import { del, put } from "@vercel/blob";
 import fs from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import { incDelete, incUpload } from "./images.metrics.js";
 
 
 const IMAGE_DIR = path.join(process.cwd(), "public", "uploads"); // Ruta para guardar las imágenes
@@ -12,7 +13,7 @@ const VERCEL_BLOB_TOKEN = process.env.PAGINAPRO_READ_WRITE_TOKEN || process.env.
 
 // Soporta subir a un servidor de blobs local (compatible con dev/blob-server.js)
 // Configure BLOB_URL en .env (por ejemplo: http://localhost:4001)
-export async function saveImage(file) {
+export async function saveImage(file, inputSlug) {
   // Validar tipo de archivo
   if (!VALID_MIME_TYPES.includes(file.type)) {
     throw new Error("Solo se permiten archivos PNG o JPG");
@@ -28,12 +29,21 @@ export async function saveImage(file) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const ext = file.name?.split('.').pop() || 'png';
-    const filename = `${uuidv4()}.${ext}`;
+    // Prefijo por slug si viene en el formdata
+    // Nota: Editor.js envía solo el archivo byFile, así que opcionalmente admitimos un header 'x-page-slug' en la ruta
+    let slugPrefix = 'general';
+    try {
+      const candidate = (inputSlug ?? globalThis.__CURRENT_UPLOAD_SLUG__ ?? 'general').toString().trim();
+      slugPrefix = candidate || 'general';
+    } catch {}
+  const cleanSlug = slugPrefix.replace(/[^a-z0-9-_/]/gi, '').replace(/\/+/g, '/');
+    const filename = `${cleanSlug}/${uuidv4()}.${ext}`;
     const upload = await put(filename, buffer, {
       access: 'public',
       token: VERCEL_BLOB_TOKEN,
       contentType: file.type,
     });
+    incUpload(1);
     return upload.url;
   }
 
@@ -59,6 +69,7 @@ export async function deleteImage(imageUrl) {
         const isVercelBlob = host.endsWith('vercel-storage.com') || host.includes('.blob.vercel-storage.com');
         if (isVercelBlob) {
           await del(imageUrl, { token: VERCEL_BLOB_TOKEN });
+          incDelete(1);
           return true;
         }
       } catch {
@@ -71,6 +82,7 @@ export async function deleteImage(imageUrl) {
       const localPath = path.join(process.cwd(), 'public', imageUrl.replace(/^\//, ''));
       try {
         await fs.unlink(localPath);
+  incDelete(1);
         return true;
       } catch (e) {
         if (e && e.code === 'ENOENT') return true; // ya no existe

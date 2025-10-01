@@ -3,7 +3,7 @@
 import EditorJS from "@editorjs/editorjs";
 import DragDrop from 'editorjs-drag-drop';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { EDITOR_JS_TOOLS } from "./utils/tools.js";
+import { EDITOR_JS_TOOLS, makeEditorTools } from "./utils/tools.js";
 
 const INITIAL_DATA = {
   time: new Date().getTime(),
@@ -36,9 +36,16 @@ const Editor = forwardRef(({ initialData }, ref) => {
     if (!holderExists) return;
 
     if (!editorRef.current) {
+      const root = Array.isArray(initialData) ? (initialData[0] || {}) : (initialData || {});
+      const slugForUpload = (root?.slug || root?.title || 'general').toString();
+      try {
+        if (typeof window !== 'undefined') {
+          window.__PP_UPLOAD_SLUG__ = slugForUpload;
+        }
+      } catch {}
       const editor = new EditorJS({
         holder: "editorjs",
-        tools: EDITOR_JS_TOOLS,
+        tools: makeEditorTools(slugForUpload) || EDITOR_JS_TOOLS,
         data: initialData || INITIAL_DATA,
         sanitizer: {
           span: { style: true, class: true },
@@ -102,6 +109,13 @@ const Editor = forwardRef(({ initialData }, ref) => {
       try {
         editorRef.current.render(initialData);
         loadedRef.current = true;
+        try {
+          if (typeof window !== 'undefined') {
+            const r = Array.isArray(initialData) ? (initialData[0] || {}) : (initialData || {});
+            const s = (r?.slug || r?.title || 'general').toString();
+            window.__PP_UPLOAD_SLUG__ = s;
+          }
+        } catch {}
         // Actualizar baseline post-render
         try {
           editorRef.current.save().then(d => {
@@ -125,12 +139,19 @@ const Editor = forwardRef(({ initialData }, ref) => {
     if (editorRef.current) {
       try {
         const savedData = await editorRef.current.save();
-        // Preservar slug si venía en los datos iniciales (para no pedirlo de nuevo en ediciones)
-        if (initialData?.slug && !savedData.slug) {
-          savedData.slug = initialData.slug;
+        // Actualizar el slug global si viene definido en los datos guardados
+        try {
+          if (typeof window !== 'undefined' && savedData?.slug) {
+            window.__PP_UPLOAD_SLUG__ = savedData.slug.toString();
+          }
+        } catch {}
+        // Preservar slug/id si venían en los datos iniciales (array wrapper compatible)
+        const rootInit = Array.isArray(initialData) ? (initialData[0] || {}) : (initialData || {});
+        if (rootInit?.slug && !savedData.slug) {
+          savedData.slug = rootInit.slug;
         }
-        if (initialData?.id && !savedData.id) {
-          savedData.id = initialData.id;
+        if (rootInit?.id && !savedData.id) {
+          savedData.id = rootInit.id;
         }
         // Si el bloque pageSettings está presente, promover sus datos al root para facilitar render SSR/cliente
         // Buscamos un bloque de tipo 'pageSettings' y copiamos su data a savedData.pageSettings

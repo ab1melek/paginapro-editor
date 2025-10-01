@@ -88,50 +88,117 @@ function EditorPageInner() {
   const [initialData, setInitialData] = useState(null);
   const [pageStyle, setPageStyle] = useState({ backgroundColor: '#ffffff', containerBackgroundColor: '#ffffff' });
 
-  // Solo leer y mostrar en consola los datos existentes si hay un id
+  // Pide un slug y valida que sea único. Devuelve { slug, name } o null si cancelan.
+  const promptUniqueSlug = async (preset = '') => {
+    // Esperar a que el navegador esté listo para prompts
+    if (typeof window === 'undefined') return null;
+    // Bucle hasta tener un slug válido o cancelar
+    // Nota: usamos prompt/alert/confirm por simplicidad, reemplazable por UI propia
+    // Normalizador de slug ya definido como toSlug
+    while (true) {
+      const input = window.prompt('Ingresa el título (se usará como slug para la URL):', preset);
+      if (input === null) return null; // cancelado
+      const s = toSlug(input || '');
+      if (!s) {
+        window.alert('El título/slug no puede estar vacío.');
+        continue;
+      }
+      try {
+        const res = await fetch(`/api/editor?slug=${encodeURIComponent(s)}`);
+        if (res.status === 404) {
+          return { slug: s, name: input };
+        }
+        // Si ya existe, sugerir uno libre automáticamente
+        const suggestion = await generateUniqueSlug(s);
+        const accept = window.confirm(`El slug "${s}" ya está en uso. ¿Quieres usar "${suggestion}"?`);
+        if (accept) return { slug: suggestion, name: input || suggestion };
+        // Si no acepta, repetir
+      } catch (e) {
+        console.error('Error verificando slug:', e);
+        // Como fallback, aceptar s con timestamp
+        const fallback = `${s}-${Date.now()}`;
+        const accept = window.confirm(`No se pudo verificar el slug. ¿Usar "${fallback}" igualmente?`);
+        if (accept) return { slug: fallback, name: input || fallback };
+      }
+    }
+  };
+
+  // Cargar datos iniciales y forzar slug antes de montar el editor
   useEffect(() => {
+    // Exponer slug global si viene en la URL
+    try {
+      if (typeof window !== 'undefined') {
+        const current = (pageSlug || '').toString();
+        if (current) window.__PP_UPLOAD_SLUG__ = current;
+      }
+    } catch {}
+
     const loadPage = async () => {
-      // Priorizar borrador en sessionStorage si viene previewKey
-      if (previewKey && typeof window !== "undefined") {
+      // Caso 1: Borrador (previewKey)
+      if (previewKey && typeof window !== 'undefined') {
         try {
           const raw = sessionStorage.getItem(previewKey);
           if (raw) {
-            const data = JSON.parse(raw);
-            console.log("[Editor] Cargando borrador desde previewKey:", previewKey);
+            let data = JSON.parse(raw);
+            const root = Array.isArray(data) ? (data[0] || {}) : (data || {});
+            if (!root.slug) {
+              const picked = await promptUniqueSlug(root.title || '');
+              if (!picked) { window.location.href = '/dashboard'; return; }
+              const withSlug = { ...root, slug: picked.slug, name: picked.name || picked.slug };
+              data = Array.isArray(data) ? [withSlug] : withSlug;
+            }
+            try { if (typeof window !== 'undefined') window.__PP_UPLOAD_SLUG__ = (Array.isArray(data) ? data[0] : data).slug; } catch {}
             setInitialData(data);
             return;
           }
         } catch (e) {
-          console.warn("[Editor] No se pudo leer previewKey:", e);
+          console.warn('[Editor] No se pudo leer previewKey:', e);
         }
       }
 
-      if (!pageId && !pageSlug) return;
-      try {
-        const res = pageId ? await fetch(`/api/editor?id=${pageId}`) : await fetch(`/api/editor?slug=${encodeURIComponent(pageSlug)}`);
-        if (res.ok) {
-          const data = await res.json();
-          console.log("[Editor] Datos cargados para edición:", data);
-          setInitialData(data);
-          try {
-            // Backfill desde bloque pageSettings si no existe en root (compatibilidad JSON legado)
-            let ps = (Array.isArray(data) ? data[0]?.pageSettings : data?.pageSettings) || {};
-            if (!ps || !Object.keys(ps).length) {
-              const root = Array.isArray(data) ? (data[0] || {}) : (data || {});
-              ps = extractPageSettingsFromBlocks(root.blocks || []);
-            }
-            setPageStyle({
-              backgroundColor: ps.backgroundColor || '#ffffff',
-              containerBackgroundColor: ps.containerBackgroundColor || '#ffffff',
-            });
-          } catch {}
-        } else {
-          console.warn("[Editor] No se pudo cargar la página", pageId);
+      // Caso 2: Edición existente por id/slug
+      if (pageId || pageSlug) {
+        try {
+          const res = pageId ? await fetch(`/api/editor?id=${pageId}`) : await fetch(`/api/editor?slug=${encodeURIComponent(pageSlug)}`);
+          if (res.ok) {
+            const data = await res.json();
+            setInitialData(data);
+            try {
+              const psRoot = Array.isArray(data) ? (data[0] || {}) : (data || {});
+              let ps = psRoot.pageSettings || {};
+              if (!ps || !Object.keys(ps).length) {
+                ps = extractPageSettingsFromBlocks(psRoot.blocks || []);
+              }
+              setPageStyle({
+                backgroundColor: ps.backgroundColor || '#ffffff',
+                containerBackgroundColor: ps.containerBackgroundColor || '#ffffff',
+              });
+              // Exponer slug global
+              const s = (psRoot.slug || psRoot.title || '').toString();
+              if (s && typeof window !== 'undefined') window.__PP_UPLOAD_SLUG__ = s;
+            } catch {}
+          } else {
+            console.warn('[Editor] No se pudo cargar la página', pageId);
+          }
+        } catch (e) {
+          console.error('[Editor] Error al cargar la página:', e);
         }
-      } catch (e) {
-        console.error("[Editor] Error al cargar la página:", e);
+        return;
       }
+
+      // Caso 3: Nueva página -> pedir slug
+      const picked = await promptUniqueSlug('');
+      if (!picked) { if (typeof window !== 'undefined') window.location.href = '/dashboard'; return; }
+      const bootstrap = {
+        slug: picked.slug,
+        name: picked.name || picked.slug,
+        pageSettings: { backgroundColor: '#ffffff', containerBackgroundColor: '#ffffff', containerOpacity: 1 },
+        blocks: [ { type: 'paragraph', data: { text: 'Escribe algo aquí...' } } ],
+      };
+      try { if (typeof window !== 'undefined') window.__PP_UPLOAD_SLUG__ = picked.slug; } catch {}
+      setInitialData(bootstrap);
     };
+
     loadPage();
   }, [pageId, pageSlug, previewKey]);
 

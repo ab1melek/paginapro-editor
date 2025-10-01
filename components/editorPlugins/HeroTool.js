@@ -133,7 +133,11 @@ export default class HeroTool {
       const f = file.files?.[0]; if (!f) return;
       try {
         const fd = new FormData(); fd.append('image', f);
-        const res = await fetch('/api/images', { method: 'POST', body: fd });
+        // Intentar obtener el slug actual desde el global del editor
+        let slug = '';
+        try { if (typeof window !== 'undefined') slug = window.__PP_UPLOAD_SLUG__ || ''; } catch {}
+        if (slug) fd.append('slug', String(slug));
+        const res = await fetch('/api/images', { method: 'POST', headers: slug ? { 'x-page-slug': String(slug) } : undefined, body: fd });
         const json = await res.json();
         if (res.ok && json?.file?.url) {
           this.data.bg = `url(${json.file.url}) center/cover no-repeat`;

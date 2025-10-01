@@ -4,7 +4,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { insertPage } from '../db/queries/page.queries.js';
+import { insertPage } from './queries/page.queries.js';
 
 const seeds = [
   JSON.parse(fs.readFileSync(path.resolve('db/seed_paginaprolanding.json'), 'utf8')),
