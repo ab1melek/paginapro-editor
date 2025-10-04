@@ -22,6 +22,20 @@ const poolConfig = appConfig?.db?.databaseUrl
 
 export const pool = new Pool(poolConfig);
 
+// Ensure each pooled client sets the desired search_path for the session.
+// Use DB_SCHEMA env var if provided, otherwise default to 'editor'.
+const schema = process.env.DB_SCHEMA || 'editor';
+if (schema) {
+  pool.on('connect', async (client) => {
+    try {
+      await client.query(`SET search_path TO "${schema}";`);
+    } catch (err) {
+      // Log and continue; some hosts may reject SET depending on permissions.
+      console.error('Failed to set search_path on new client:', err.message || err);
+    }
+  });
+}
+
 export async function query(text, params) {
   const start = Date.now();
   const res = await pool.query(text, params);
