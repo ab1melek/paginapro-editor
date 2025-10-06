@@ -6,6 +6,7 @@ import PageList from "../../components/PageList";
 
 export default function DashboardPage() {
   const [pages, setPages] = useState([]);
+  const [me, setMe] = useState(null);
   const router = useRouter();
 
   // Obtener las páginas existentes
@@ -97,7 +98,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchPages();
+    // Cargar usuario actual para mostrarlo y ofrecer logout
+    (async () => {
+      try {
+        const r = await fetch('/api/auth/me', { cache: 'no-store' });
+        const j = await r.json();
+        setMe(j?.user || null);
+      } catch {}
+    })();
   }, []);
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    router.replace('/login');
+  }
 
   return (
     <main style={{ padding: 24 }}>
@@ -110,16 +126,28 @@ export default function DashboardPage() {
           <h1 style={{ margin: 0, fontSize: 22 }}>Dashboard</h1>
           <p style={{ margin: 0, opacity: 0.7, fontSize: 13 }}>Administra tus páginas</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          {me && (
+            <span style={{ fontSize: 13, color: '#374151', marginRight: 8 }}>
+              Hola, <strong>{me.username || me.email || me.id}</strong>{me.is_special ? ' (especial)' : ''}
+            </span>
+          )}
           <button onClick={handleCreate} style={{
             padding: '10px 14px', borderRadius: 8, border: '1px solid #374151', background: '#374151', color: '#fff', cursor: 'pointer', fontWeight: 700
           }}>
             + Crear desde plantilla
           </button>
-          <button onClick={() => router.push(`/dashboard/editor?slug=${encodeURIComponent(process.env.NEXT_PUBLIC_HOME_SLUG || 'paginaprolanding')}`)} style={{
-            padding: '10px 14px', borderRadius: 8, border: '1px solid #111827', background: '#111827', color: '#fff', cursor: 'pointer', fontWeight: 700
+          {me?.username?.toLowerCase() === 'gatunoide' && (
+            <button onClick={() => router.push(`/dashboard/editor?slug=${encodeURIComponent(process.env.NEXT_PUBLIC_HOME_SLUG || 'paginaprolanding')}`)} style={{
+              padding: '10px 14px', borderRadius: 8, border: '1px solid #111827', background: '#111827', color: '#fff', cursor: 'pointer', fontWeight: 700
+            }}>
+              Editar portada
+            </button>
+          )}
+          <button onClick={handleLogout} style={{
+            padding: '10px 14px', borderRadius: 8, border: '1px solid #ef4444', background: '#fff', color: '#ef4444', cursor: 'pointer', fontWeight: 700
           }}>
-            Editar portada
+            Cerrar sesión
           </button>
         </div>
       </div>

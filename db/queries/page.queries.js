@@ -3,17 +3,18 @@ import { query } from '../pool.js';
 
 export async function insertPage(data) {
   const row = toPageRow(data);
-  const text = `INSERT INTO pages (id, slug, title, data, page_settings) VALUES ($1,$2,$3,$4,$5) RETURNING *`;
-  const values = [row.id, row.slug, row.title, row.data, row.page_settings];
+  const owner_id = data.owner_id || null;
+  const text = `INSERT INTO pages (id, slug, title, data, page_settings, owner_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`;
+  const values = [row.id, row.slug, row.title, row.data, row.page_settings, owner_id];
   const res = await query(text, values);
   return fromPageRow(res.rows[0]);
 }
 
 export async function updatePageById(id, data) {
   // merge server-side: tomamos el row actual y lo actualizamos completamente con "data"
-  const text = `UPDATE pages SET slug=$2, title=$3, data=$4, page_settings=$5 WHERE id=$1 RETURNING *`;
+  const text = `UPDATE pages SET slug=$2, title=$3, data=$4, page_settings=$5, owner_id=COALESCE($6, owner_id) WHERE id=$1 RETURNING *`;
   const row = toPageRow({ ...data, id });
-  const values = [id, row.slug, row.title, row.data, row.page_settings];
+  const values = [id, row.slug, row.title, row.data, row.page_settings, data.owner_id || null];
   const res = await query(text, values);
   return fromPageRow(res.rows[0]);
 }
@@ -30,6 +31,11 @@ export async function selectPageBySlug(slug) {
 
 export async function selectPages() {
   const res = await query(`SELECT id, slug, title, created_at FROM pages ORDER BY created_at DESC`);
+  return res.rows.map(r => ({ id: r.id, name: r.slug || r.title || 'Sin nombre' }));
+}
+
+export async function selectPagesByOwner(ownerId) {
+  const res = await query(`SELECT id, slug, title, created_at FROM pages WHERE owner_id = $1 ORDER BY created_at DESC`, [ownerId]);
   return res.rows.map(r => ({ id: r.id, name: r.slug || r.title || 'Sin nombre' }));
 }
 

@@ -1,7 +1,26 @@
 import { query } from '../pool.js';
 
 export async function migrate() {
+  // Extensiones base
   await query(`CREATE EXTENSION IF NOT EXISTS citext;`);
+
+  // ========= Auth mínima (esquema neon_auth) =========
+  await query(`CREATE SCHEMA IF NOT EXISTS neon_auth;`);
+  await query(`
+    CREATE TABLE IF NOT EXISTS neon_auth.users (
+      id TEXT PRIMARY KEY,
+      username CITEXT UNIQUE NOT NULL,
+      email CITEXT UNIQUE,
+      password_hash TEXT NOT NULL,
+      is_special BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_auth_users_username ON neon_auth.users (username);`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_auth_users_email ON neon_auth.users (email);`);
+
+  // ========= Páginas (schema actual en search_path, por defecto 'editor') =========
   await query(`
     CREATE TABLE IF NOT EXISTS pages (
       id TEXT PRIMARY KEY,
@@ -13,6 +32,24 @@ export async function migrate() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+
+  // owner_id + FK -> neon_auth.users
+  await query(`ALTER TABLE pages ADD COLUMN IF NOT EXISTS owner_id TEXT;`);
+  await query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'pages_owner_fk'
+          AND table_name = 'pages'
+      ) THEN
+        ALTER TABLE pages
+          ADD CONSTRAINT pages_owner_fk FOREIGN KEY (owner_id)
+          REFERENCES neon_auth.users(id) ON DELETE SET NULL;
+      END IF;
+    END$$;
+  `);
+
   // trigger to auto-update updated_at
   await query(`
     CREATE OR REPLACE FUNCTION set_updated_at()

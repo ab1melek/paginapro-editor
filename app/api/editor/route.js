@@ -1,17 +1,39 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from "next/server";
-import { deletePageById } from "../../../db/queries/page.queries";
+import { countPagesByOwner, getPageOwnerById } from "../../../db/queries/auth.queries.js";
+import { deletePageById } from "../../../db/queries/page.queries.js";
+import { COOKIE_NAME, verifyToken } from "../../../lib/auth.js";
 import { createPage } from "../services/createPage.db.service";
 import { editPageById, getPageById } from "../services/editPageById.db.service";
 import { getAllPagesWithData } from "../services/getAllPagesWithData.db.service";
 import { getPageBySlug } from "../services/getPageBySlug.db.service";
-import { getPages } from "../services/getPages.db.services";
+import { getPagesByUser } from "../services/getPagesByUser.db.service";
 import { deleteImage } from "../services/images.services";
 
 export async function POST(req) {
     try {
+        // Autenticación
+    const cookieStore = await cookies();
+    const token = cookieStore.get(COOKIE_NAME)?.value;
+    const user = token ? await verifyToken(token) : null;
+        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
         const data = await req.json(); // Usar await para obtener los datos correctamente
         console.log("Datos recibidos en el router:", data);
-        const result = await createPage(data);
+        // Bloquear creación/edición de la portada salvo para "gatunoide"
+        const HOME_SLUG = (process.env.HOME_SLUG || 'paginaprolanding').toLowerCase();
+        const uname = String(user.username || '').toLowerCase();
+        if (String(data?.slug || '').toLowerCase() === HOME_SLUG && uname !== 'gatunoide') {
+          return NextResponse.json({ error: 'Forbidden: portada solo editable por gatunoide' }, { status: 403 });
+        }
+        // Límite de 2 páginas para usuarios no especiales
+        if (!user.is_special) {
+          const cnt = await countPagesByOwner(user.id);
+          if (cnt >= 2) {
+            return NextResponse.json({ error: 'Límite alcanzado (2 páginas)' }, { status: 403 });
+          }
+        }
+        const result = await createPage({ ...data, owner_id: user.id });
         return NextResponse.json(result, { status: 201 });
     } catch (error){
         console.error("Error al procesar la solicitud:", error);
@@ -41,9 +63,16 @@ export async function GET(req) {
   }
   return NextResponse.json(page, { status: 200 });
     } else {
-      // Obtener todas las páginas
-      const result = await getPages();
-      return NextResponse.json(result, { status: 200 });
+      // Listado por usuario: autenticado ve sus páginas; landing sólo aparece para "gatunoide"
+      const cookieStore = await cookies();
+      const token = cookieStore.get(COOKIE_NAME)?.value;
+      const user = token ? await verifyToken(token) : null;
+      if (user) {
+        const result = await getPagesByUser({ userId: user.id, username: user.username });
+        return NextResponse.json(result, { status: 200 });
+      }
+      // Sin sesión: lista vacía
+      return NextResponse.json([], { status: 200 });
     }
   } catch (error) {
     console.error("Error al procesar la solicitud:", error);
@@ -60,11 +89,30 @@ export async function PUT(req) {
     if (!id) {
       return NextResponse.json({ error: "Falta el id para actualizar" }, { status: 400 });
     }
+    // Autenticación y autorización
+    const token = cookies().get(COOKIE_NAME)?.value;
+  const user = token ? await verifyToken(token) : null;
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user.is_special) {
+      const ownerId = await getPageOwnerById(id);
+      if (ownerId && ownerId !== user.id) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
     // Obtener versión previa para detectar imágenes a eliminar
     let prevPage = null;
     try {
       prevPage = await getPageById(id);
     } catch {}
+
+    // Regla: la portada (HOME_SLUG) solo puede editarla "gatunoide"
+    const HOME_SLUG = (process.env.HOME_SLUG || 'paginaprolanding').toLowerCase();
+    const uname = String(user.username || '').toLowerCase();
+    const prevSlug = String((Array.isArray(prevPage) ? (prevPage[0] || {}) : (prevPage || {}))?.slug || '').toLowerCase();
+    const nextSlug = String((body?.slug || '')).toLowerCase();
+    if ((prevSlug === HOME_SLUG || nextSlug === HOME_SLUG) && uname !== 'gatunoide') {
+      return NextResponse.json({ error: 'Forbidden: portada solo editable por gatunoide' }, { status: 403 });
+    }
 
     // Garantizar que no se pierda el id
     const dataToUpdate = { ...body, id };
@@ -74,7 +122,7 @@ export async function PUT(req) {
     const nextUrls = collectImageUrls(dataToUpdate);
     const removed = Array.from(prevUrls).filter(u => !nextUrls.has(u));
 
-    const result = await editPageById(id, dataToUpdate);
+  const result = await editPageById(id, { ...dataToUpdate, owner_id: user.id });
     console.log("Página actualizada", id, result.data);
 
     // Borrado best-effort de imágenes removidas tras actualizar (si no están en uso por otras páginas)

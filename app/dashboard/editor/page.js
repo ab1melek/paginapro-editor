@@ -139,15 +139,22 @@ function EditorPageInner() {
         try {
           const raw = sessionStorage.getItem(previewKey);
           if (raw) {
+            // Cargar plantilla y pedir slug inmediatamente para configurar uploads
             let data = JSON.parse(raw);
             const root = Array.isArray(data) ? (data[0] || {}) : (data || {});
+            // Si no hay slug, solicitarlo ahora
             if (!root.slug) {
-              const picked = await promptUniqueSlug(root.title || '');
+              const picked = await promptUniqueSlug('');
               if (!picked) { window.location.href = '/dashboard'; return; }
-              const withSlug = { ...root, slug: picked.slug, name: picked.name || picked.slug };
-              data = Array.isArray(data) ? [withSlug] : withSlug;
+              root.slug = picked.slug;
+              // Asignar un nombre si no existe
+              if (!root.name && !root.title) {
+                root.name = picked.name || picked.slug;
+              }
+              // Volver a colocar el root modificado respetando el wrapper
+              data = Array.isArray(data) ? [root] : root;
             }
-            try { if (typeof window !== 'undefined') window.__PP_UPLOAD_SLUG__ = (Array.isArray(data) ? data[0] : data).slug; } catch {}
+            try { if (root.slug) window.__PP_UPLOAD_SLUG__ = root.slug; } catch {}
             setInitialData(data);
             return;
           }
@@ -244,7 +251,7 @@ function EditorPageInner() {
           ...(pageStyle?.containerBackgroundColor ? { containerBackgroundColor: pageStyle.containerBackgroundColor } : {}),
         };
         
-        // Solicitar el título/slug si no está presente
+        // Solicitar el título/slug si no está presente (una sola vez, en guardado)
         if (!savedData.slug) {
           const input = prompt("Ingresa el título (se usará como slug para la URL):");
           const slug = toSlug(input || '');
@@ -253,7 +260,6 @@ function EditorPageInner() {
             return; // Detener el guardado si no hay un nombre válido
           }
           savedData.slug = slug; // Guardar slug normalizado
-          // Guardar nombre visible: usa el input original si existe, sino el slug
           if (!savedData.name) savedData.name = input || slug;
         } else {
           // Normalizar slug existente por consistencia

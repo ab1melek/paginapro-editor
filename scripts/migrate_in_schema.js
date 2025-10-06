@@ -64,8 +64,25 @@ function buildUrlWithSearchPath(url, schemaName) {
         // set search_path for this session
         await client.query(`SET search_path TO "${schema}";`);
 
-        // Run the same statements as db/migrations/migration.js but using this client
+        // Run statements similar to db/migrations/migration.js but using this client
         await client.query(`CREATE EXTENSION IF NOT EXISTS citext;`);
+
+        // neon_auth.users (global schema)
+        await client.query(`CREATE SCHEMA IF NOT EXISTS neon_auth;`);
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS neon_auth.users (
+            id TEXT PRIMARY KEY,
+            username CITEXT UNIQUE NOT NULL,
+            email CITEXT UNIQUE,
+            password_hash TEXT NOT NULL,
+            is_special BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+          );
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_auth_users_username ON neon_auth.users (username);`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_auth_users_email ON neon_auth.users (email);`);
+
         await client.query(`
           CREATE TABLE IF NOT EXISTS pages (
             id TEXT PRIMARY KEY,
@@ -76,6 +93,21 @@ function buildUrlWithSearchPath(url, schemaName) {
             created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
           );
+        `);
+        await client.query(`ALTER TABLE pages ADD COLUMN IF NOT EXISTS owner_id TEXT;`);
+        await client.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.table_constraints
+              WHERE constraint_name = 'pages_owner_fk'
+                AND table_name = 'pages'
+            ) THEN
+              ALTER TABLE pages
+                ADD CONSTRAINT pages_owner_fk FOREIGN KEY (owner_id)
+                REFERENCES neon_auth.users(id) ON DELETE SET NULL;
+            END IF;
+          END$$;
         `);
 
         await client.query(`
