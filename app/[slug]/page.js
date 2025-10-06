@@ -1,25 +1,9 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import ReadOnlyPage from "../../components/ReadOnlyPage";
-import { COOKIE_NAME, verifyToken } from '../../lib/auth.js';
 import { APP } from '../../lib/config.js';
 
 export default async function PaginaPorSlug({ params }) {
   // Await params antes de destructurar
   const { slug } = await params;
-  // Regla exclusiva: solo "gatunoide" puede ver la landing principal por slug
-  const HOME_SLUG = (process.env.HOME_SLUG || 'paginaprolanding').toLowerCase();
-  if (String(slug).toLowerCase() === HOME_SLUG) {
-    const token = cookies().get(COOKIE_NAME)?.value;
-    if (!token) {
-      redirect('/login');
-    }
-    const payload = await verifyToken(token);
-    const uname = String(payload?.username || '').toLowerCase();
-    if (uname !== 'gatunoide') {
-      redirect('/dashboard');
-    }
-  }
   const baseURL = APP?.baseURL || `http://localhost:${APP?.port || 3000}`;
   const res = await fetch(`${baseURL}/api/editor?slug=${slug}`, { cache: "no-store" });
   if (!res.ok) return <ReadOnlyPage pageData={null} />;

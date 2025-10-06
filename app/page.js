@@ -1,23 +1,8 @@
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import ReadOnlyPage from "../components/ReadOnlyPage";
-import { COOKIE_NAME, verifyToken } from "../lib/auth";
 import { APP } from "../lib/config";
 import { paginaproTemplate } from "./templates/paginapro";
 
 export default async function HomePage() {
-  // Regla exclusiva: solo "gatunoide" puede ver la landing principal
-  const token = cookies().get(COOKIE_NAME)?.value;
-  if (!token) {
-    // No autenticado: no puede ver landing
-    redirect('/login');
-  }
-  const payload = await verifyToken(token);
-  const uname = String(payload?.username || '').toLowerCase();
-  if (uname !== 'gatunoide') {
-    // Autenticado pero no es el usuario permitido
-    redirect('/dashboard');
-  }
   // Slug que representa la portada del sitio; cámbialo con HOME_SLUG si lo deseas
   const HOME_SLUG = process.env.HOME_SLUG || 'paginaprolanding';
   const baseURL = APP?.baseURL || `http://localhost:${APP?.port || 3000}`;
