@@ -1,10 +1,11 @@
 "use client";
 
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import TemplatePicker from '../../../components/TemplatePicker';
 import { templates } from '../../templates';
 
-export default function NewPageWithTemplate() {
+function NewPageInner() {
   const searchParams = useSearchParams();
   const preset = searchParams.get('template');
   
@@ -100,4 +101,12 @@ export default function NewPageWithTemplate() {
   }
 
   return <TemplatePicker onSelect={handleSelect} onCancel={() => (window.location.href = '/dashboard')} />;
+}
+
+export default function NewPageWithTemplate() {
+  return (
+    <Suspense fallback={<div style={{ padding: 16 }}>Cargando…</div>}>
+      <NewPageInner />
+    </Suspense>
+  );
 }
