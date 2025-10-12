@@ -446,7 +446,7 @@ export default function LandingRenderer({ data }) {
 
     .pro-header-1 {
       font-size: clamp(2.5rem, 5vw, 4rem);
-      color: #ffffff;
+      color: inherit;
       text-shadow: 0 2px 4px rgba(0,0,0,0.1);
       margin-bottom: 1rem;
     }
@@ -478,7 +478,7 @@ export default function LandingRenderer({ data }) {
 
     .pro-paragraph {
       font-size: clamp(1rem, 2vw, 1.25rem);
-      color: rgba(255,255,255,0.9);
+      color: inherit;
       margin: 0 0 2rem;
       max-width: 600px;
       margin-left: auto;

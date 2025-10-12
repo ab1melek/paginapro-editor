@@ -23,7 +23,7 @@ export default function MislinksRenderer({ data }) {
     const socialBlock = blocks.find(b => b.type === 'socialIcons');
     const buttonBlocks = blocks.filter(b => b.type === 'button').slice(0, 5);
 
-    const avatarUrl = firstImage?.data?.file?.url || firstImage?.data?.url || null;
+  const avatarUrl = firstImage?.data?.file?.url || firstImage?.data?.url || null;
     const titleText = firstHeader?.data?.text || '';
     const paragraphHtml = (firstParagraph?.data?.text || '').replace(/\n/g, '<br>');
 
@@ -67,7 +67,10 @@ export default function MislinksRenderer({ data }) {
       width: '100%',
       maxWidth: pageSettings?.maxWidth || 560,
       textAlign: 'center',
-      color: textColor,
+      // No forzamos color aquí: el contenedor (.editor-content-container) debe aplicar
+      // pageSettings.textColor y los elementos deben heredar con `color: inherit`.
+      // Esto permite que la UI del editor y el SSR mantengan la coherencia.
+      color: 'inherit',
       marginLeft: 'auto',
       marginRight: 'auto',
     };
@@ -89,15 +92,19 @@ export default function MislinksRenderer({ data }) {
       margin: '4px 0 10px',
       letterSpacing: '-0.01em',
       lineHeight: 1.2,
-      textShadow: '0 1px 2px rgba(0,0,0,0.15)'
+      textShadow: '0 1px 2px rgba(0,0,0,0.15)',
+      color: 'inherit'
     };
 
     const bioStyle = {
       fontSize: 'clamp(0.95rem, 2.2vw, 1.05rem)',
       opacity: 0.9,
       margin: '0 0 16px',
-      textShadow: '0 1px 1px rgba(0,0,0,0.1)'
+      textShadow: '0 1px 1px rgba(0,0,0,0.1)',
+      color: 'inherit'
     };
+
+    const containerBg = pageSettings?.containerBackgroundColor || pageSettings?.backgroundColor || null;
 
     const buttonsWrapStyle = {
       display: 'flex',
@@ -119,8 +126,9 @@ export default function MislinksRenderer({ data }) {
       fontWeight: 700,
       fontSize: '1rem',
       border: '2px solid transparent',
-      background: 'rgba(255,255,255,0.1)',
-      color: '#ffffff',
+      background: 'rgba(255,255,255,0.08)',
+      // Por defecto heredar el color del contenedor; si el botón define textColor se usará ese valor
+      color: 'inherit',
       textAlign: 'center',
       backdropFilter: 'saturate(140%) blur(2px)',
       WebkitBackdropFilter: 'saturate(140%) blur(2px)',
@@ -212,10 +220,28 @@ export default function MislinksRenderer({ data }) {
                     return L > 0.5 ? '#111827' : '#ffffff';
                   } catch { return '#ffffff'; }
                 };
+                // Determine a sensible default background when the button doesn't specify one
+                const isLight = (hex) => {
+                  try {
+                    if (!hex) return false;
+                    const h = hex.replace('#','');
+                    const v = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+                    const r = parseInt(v.substr(0,2),16), g = parseInt(v.substr(2,2),16), b = parseInt(v.substr(4,2),16);
+                    const srgb = [r,g,b].map(c => {
+                      const cs = c/255;
+                      return cs <= 0.03928 ? cs/12.92 : Math.pow((cs+0.055)/1.055, 2.4);
+                    });
+                    const L = 0.2126*srgb[0] + 0.7152*srgb[1] + 0.0722*srgb[2];
+                    return L > 0.6;
+                  } catch { return false; }
+                };
+
+                const defaultButtonBg = containerBg && isLight(containerBg) ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)';
+
                 const style = {
                   ...buttonBaseStyle,
-                  ...(bg ? { background: bg, borderColor: bg } : {}),
-                  ...(btn.data?.textColor ? { color: btn.data.textColor } : (bg ? { color: pickText(bg) } : {})),
+                  ...(bg ? { background: bg, borderColor: bg } : { background: defaultButtonBg, borderColor: 'transparent' }),
+                  ...(btn.data?.textColor ? { color: btn.data.textColor } : (bg ? { color: pickText(bg) } : { color: 'inherit' })),
                 };
                 return (
                   <a
@@ -223,6 +249,8 @@ export default function MislinksRenderer({ data }) {
                     href={href}
                     className="ml-button"
                     style={style}
+                    role="button"
+                    aria-label={t.replace(/<[^>]*>/g,'')}
                     onMouseEnter={(e) => Object.assign(e.currentTarget.style, buttonHover)}
                     onMouseLeave={(e) => Object.assign(e.currentTarget.style, { transform: 'translateY(0)', boxShadow: 'none', filter: 'none' })}
                     dangerouslySetInnerHTML={{ __html: t }}

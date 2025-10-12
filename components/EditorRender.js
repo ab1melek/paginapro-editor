@@ -17,6 +17,8 @@ export default function EditorRender({ data, device }) {
       }
       const mainContainer = document?.querySelector('.editor-content-container');
       if (mainContainer) {
+        // aplicar color de texto del template al contenedor del editor para que la UI muestre el mismo color
+        if (pageSettings.textColor) mainContainer.style.color = pageSettings.textColor;
         if (pageSettings.containerBackgroundColor) {
           mainContainer.style.backgroundColor = pageSettings.containerBackgroundColor;
         }

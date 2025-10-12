@@ -254,6 +254,9 @@ export default function EditorRenderServer({ data }) {
     if (pageSettings.containerBackgroundColor) {
       css += `.editor-content-container{background-color:${pageSettings.containerBackgroundColor};}`;
     }
+    if (pageSettings.textColor) {
+      css += `.editor-content-container{color:${pageSettings.textColor};}`;
+    }
     return css;
   };
 
