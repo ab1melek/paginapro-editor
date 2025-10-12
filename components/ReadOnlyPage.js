@@ -1,5 +1,6 @@
 import EditorRenderServer from "./EditorRender.server";
 import LandingRenderer from "./LandingRenderer";
+import MenuRenderer from "./MenuRenderer";
 import MislinksRenderer from "./MislinksRenderer";
 import { normalize } from "./utils/editorRender";
 
@@ -10,6 +11,7 @@ export default function ReadOnlyPage({ pageData }) {
   const { pageSettings } = normalize(pageData);
   const isLanding = pageSettings?.layout === 'landing';
   const isMislinks = pageSettings?.layout === 'mislinks';
+  const isMenu = pageSettings?.layout === 'menu';
   
   // Aplicar estilos de página (backgroundColor, etc.)
   const pageStyle = {
@@ -24,6 +26,8 @@ export default function ReadOnlyPage({ pageData }) {
         <LandingRenderer data={pageData} />
       ) : isMislinks ? (
         <MislinksRenderer data={pageData} />
+      ) : isMenu ? (
+        <MenuRenderer data={pageData} />
       ) : (
         <EditorRenderServer data={pageData} />
       )}

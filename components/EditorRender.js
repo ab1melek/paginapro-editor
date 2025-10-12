@@ -236,13 +236,22 @@ export default function EditorRender({ data, device }) {
         const isOrdered = block.data?.style === "ordered";
         const items = block.data?.items || [];
         const ListTag = isOrdered ? "ol" : "ul";
+        const renderItem = (val) => {
+          if (val == null) return '';
+          if (typeof val === 'string' || typeof val === 'number') return <span dangerouslySetInnerHTML={{ __html: String(val) }} />;
+          if (typeof val === 'object') {
+            const text = val.text || val.label || val.title || val.content || '';
+            return <span dangerouslySetInnerHTML={{ __html: String(text) }} />;
+          }
+          return <span />;
+        };
         return (
           <ListTag
             key={block.id}
             style={{ textAlign: align, margin:"0 0 1rem", paddingLeft: isOrdered ? 28 : 22 }}
           >
             {items.map((it, i) => (
-              <li key={i} dangerouslySetInnerHTML={{ __html: it }} />
+              <li key={i}>{renderItem(it)}</li>
             ))}
           </ListTag>
         );

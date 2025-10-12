@@ -147,10 +147,19 @@ export default function LandingRenderer({ data }) {
         const items = block.data?.items || [];
         const style = block.data?.style || "unordered";
         const Tag = style === "ordered" ? "ol" : "ul";
+        const renderItem = (val) => {
+          if (val == null) return '';
+          if (typeof val === 'string' || typeof val === 'number') return <span dangerouslySetInnerHTML={{ __html: String(val) }} />;
+          if (typeof val === 'object') {
+            const text = val.text || val.label || val.title || val.content || '';
+            return <span dangerouslySetInnerHTML={{ __html: String(text) }} />;
+          }
+          return <span />;
+        };
         return (
           <Tag key={blockKey} className="pro-list" style={{ textAlign: align }}>
             {items.map((item, i) => (
-              <li key={i} className="pro-list-item">{item}</li>
+              <li key={i} className="pro-list-item">{renderItem(item)}</li>
             ))}
           </Tag>
         );

@@ -7,6 +7,7 @@ import { hasFourColumnsInBlocks, normalize } from './utils/editorRender';
 const EditorRender = dynamic(() => import("./EditorRender"), { ssr: false });
 const LandingRenderer = dynamic(() => import("./LandingRenderer"), { ssr: false });
 const MislinksRenderer = dynamic(() => import("./MislinksRenderer"), { ssr: false });
+const MenuRenderer = dynamic(() => import("./MenuRenderer"), { ssr: false });
 
 const DEVICES = {
   desktop: { label: "Desktop", width: 1200, height: 800, padding: 24 },
@@ -45,6 +46,7 @@ export default function PreviewGrid({ pageData }) {
   const wantWide = hasFourColumnsInBlocks(blocks);
   const isLanding = pageSettings?.layout === 'landing';
   const isMislinks = pageSettings?.layout === 'mislinks';
+  const isMenu = pageSettings?.layout === 'menu';
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -153,6 +155,8 @@ export default function PreviewGrid({ pageData }) {
               <LandingRenderer data={pageData} />
             ) : isMislinks ? (
               <MislinksRenderer data={pageData} />
+            ) : isMenu ? (
+              <MenuRenderer data={pageData} />
             ) : (
               <EditorRender data={pageData} device={device} />
             )}
@@ -191,6 +195,8 @@ export default function PreviewGrid({ pageData }) {
                   <LandingRenderer data={pageData} />
                 ) : isMislinks ? (
                   <MislinksRenderer data={pageData} />
+                ) : isMenu ? (
+                  <MenuRenderer data={pageData} />
                 ) : (
                   <EditorRender data={pageData} device={device} />
                 )}
