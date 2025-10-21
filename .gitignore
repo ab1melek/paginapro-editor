@@ -72,3 +72,6 @@ JSON/*
 
 #ignorar los archivos de configuración de IDE
 public/*
+
+# Ignorar MCP server
+.vscode
