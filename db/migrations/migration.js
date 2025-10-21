@@ -20,6 +20,15 @@ export async function migrate() {
   await query(`CREATE INDEX IF NOT EXISTS idx_auth_users_username ON neon_auth.users (username);`);
   await query(`CREATE INDEX IF NOT EXISTS idx_auth_users_email ON neon_auth.users (email);`);
 
+  // Asegurar columnas adicionales que existen en la BD/GUI (no modificamos datos)
+  await query(`ALTER TABLE IF EXISTS neon_auth.users
+    ADD COLUMN IF NOT EXISTS plan TEXT,
+    ADD COLUMN IF NOT EXISTS next_pay TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS mp_subscription_id TEXT,
+    ADD COLUMN IF NOT EXISTS mp_customer_id TEXT,
+    ADD COLUMN IF NOT EXISTS first_page_created_at TIMESTAMPTZ;
+  `);
+
   // ========= Páginas (schema actual en search_path, por defecto 'editor') =========
   await query(`
     CREATE TABLE IF NOT EXISTS pages (
