@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import PageList from "../../components/PageList";
+import SubscriptionButton from "../../components/SubscriptionButton";
 
 export default function DashboardPage() {
   const [pages, setPages] = useState([]);
@@ -115,8 +116,99 @@ export default function DashboardPage() {
     router.replace('/login');
   }
 
+  function getSubscriptionBadge() {
+    if (!me) return null;
+
+    // Usuario especial
+    if (me.is_special) {
+      return (
+        <div style={{
+          padding: "8px 12px",
+          backgroundColor: "#f3e8ff",
+          color: "#7c3aed",
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: "600",
+        }}>
+          ⭐ Usuario especial - Sin restricciones
+        </div>
+      );
+    }
+
+    const now = new Date();
+    const expiresAt = me.subscription_expires_at ? new Date(me.subscription_expires_at) : null;
+    const daysLeft = expiresAt ? Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24)) : 0;
+
+    // Prueba gratuita activa
+    if (me.subscription_status === "trial" && daysLeft > 0) {
+      return (
+        <div style={{
+          padding: "8px 12px",
+          backgroundColor: "#eff6ff",
+          color: "#3b82f6",
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: "600",
+        }}>
+          🎁 Prueba gratuita - {daysLeft} días restantes
+        </div>
+      );
+    }
+
+    // Suscripción activa
+    if (me.subscription_status === "active") {
+      const renewalText = daysLeft > 0 
+        ? ` - Renueva en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}` 
+        : '';
+      
+      return (
+        <div style={{
+          padding: "8px 12px",
+          backgroundColor: "#f0fdf4",
+          color: "#10b981",
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: "600",
+        }}>
+          ✅ Suscripción activa{renewalText}
+        </div>
+      );
+    }
+
+    // Suscripción expirada
+    if (me.subscription_status === "expired" || (daysLeft <= 0 && me.subscription_status === "trial")) {
+      return (
+        <div style={{
+          padding: "8px 12px",
+          backgroundColor: "#fef2f2",
+          color: "#ef4444",
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}>
+          <span>⚠️ Suscripción expirada</span>
+          <SubscriptionButton />
+        </div>
+      );
+    }
+
+    return null;
+  }
+
   return (
     <main style={{ padding: 24 }}>
+      {/* Badge de suscripción */}
+      {getSubscriptionBadge() && (
+        <div style={{
+          marginBottom: "16px",
+        }}>
+          {getSubscriptionBadge()}
+        </div>
+      )}
+
       <div style={{ 
         display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
         border: '1px solid #e9ecef', borderRadius: 12, padding: '12px 16px', marginBottom: 16,

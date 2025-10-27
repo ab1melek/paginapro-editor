@@ -57,7 +57,8 @@ export async function GET(req) {
   return NextResponse.json(page, { status: 200 });
     } else if (slug) {
         // Obtener una página especifica por slug
-  const page = await getPageBySlug(slug);
+  const includeOwnerStatus = searchParams.get("includeOwnerStatus") === "true";
+  const page = await getPageBySlug(slug, includeOwnerStatus);
   if (!page) {
     return NextResponse.json({ error: "Página no encontrada" }, { status: 404 });
   }

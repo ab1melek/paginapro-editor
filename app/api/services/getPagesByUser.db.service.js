@@ -9,13 +9,12 @@ export async function getPagesByUser({ userId, username }) {
     try {
       const landing = await selectPageBySlug(HOME_SLUG);
       if (landing && !pages.some(p => p.id === landing.id)) {
-        pages.unshift({ id: landing.id, name: landing.slug || landing.title || 'portada' });
+        pages.unshift({ id: landing.id, slug: landing.slug, title: landing.slug || 'portada' });
       }
     } catch {}
   } else {
     // Asegurar que ningún otro usuario vea la portada en su lista
-    const filtered = pages.filter(p => (p?.name || '').toLowerCase() !== HOME_SLUG);
-    return filtered;
+    return pages.filter(p => (p?.slug || '').toLowerCase() !== HOME_SLUG);
   }
 
   return pages;

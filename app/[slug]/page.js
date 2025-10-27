@@ -5,9 +5,66 @@ export default async function PaginaPorSlug({ params }) {
   // Await params antes de destructurar
   const { slug } = await params;
   const baseURL = APP?.baseURL || `http://localhost:${APP?.port || 3000}`;
-  const res = await fetch(`${baseURL}/api/editor?slug=${slug}`, { cache: "no-store" });
+  const res = await fetch(`${baseURL}/api/editor?slug=${slug}&includeOwnerStatus=true`, { cache: "no-store" });
   if (!res.ok) return <ReadOnlyPage pageData={null} />;
   const pageData = await res.json();
+
+  // La página principal (portada) NO está sujeta a verificación de suscripción
+  const HOME_SLUG = (process.env.HOME_SLUG || 'paginaprolanding').toLowerCase();
+  if (slug.toLowerCase() === HOME_SLUG) {
+    return <ReadOnlyPage pageData={pageData} />;
+  }
+
+  // Verificar estado de suscripción del propietario (solo para páginas de usuarios)
+  try {
+    const owner = pageData.ownerStatus;
+
+    if (owner) {
+      const now = new Date();
+      const expiresAt = owner.subscription_expires_at ? new Date(owner.subscription_expires_at) : null;
+
+      // Usuario especial → siempre mostrar (sin restricciones)
+      if (owner.is_special) {
+        return <ReadOnlyPage pageData={pageData} />;
+      }
+
+      // Suscripción activa → mostrar
+      if (owner.subscription_status === "active") {
+        return <ReadOnlyPage pageData={pageData} />;
+      }
+
+      // Trial dentro del plazo → mostrar
+      if (owner.subscription_status === "trial" && expiresAt && expiresAt > now) {
+        return <ReadOnlyPage pageData={pageData} />;
+      }
+
+      // Trial/suscripción expirada → BLOQUEAR
+      return (
+        <div style={{
+          textAlign: "center",
+          padding: "100px 20px",
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#f3f4f6",
+          fontFamily: "system-ui, -apple-system, sans-serif",
+        }}>
+          <h1 style={{ color: "#ef4444", marginBottom: "10px", fontSize: "28px" }}>
+            🔒 Suscripción expirada
+          </h1>
+          <p style={{ color: "#6b7280", marginBottom: "20px", fontSize: "16px" }}>
+            La página no está disponible. Por favor, contacta al propietario para más información.
+          </p>
+        </div>
+      );
+    }
+  } catch (err) {
+    console.error("Error verificando suscripción:", err);
+    // En caso de error, mostrar la página (no bloquear)
+  }
+
   return <ReadOnlyPage pageData={pageData} />;
 }
 
