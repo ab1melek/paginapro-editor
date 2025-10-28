@@ -1,46 +1,33 @@
 #!/usr/bin/env node
 /**
  * Script para expirar la suscripción de un usuario de prueba
- * Uso: node scripts/testusers/expireSubscription.js [username]
- * Ejemplo: node scripts/testusers/expireSubscription.js test1
+ * Uso: node scripts/testusers/expireSubscription.js [email]
+ * Ejemplo: node scripts/testusers/expireSubscription.js test1@mail.com
  */
 
 import 'dotenv/config';
-import pg from 'pg';
+import { createPool } from './dbPool.js';
 
-const { Pool } = pg;
+const pool = createPool();
 
-// Configurar pool con DATABASE_URL o variables individuales
-const poolConfig = process.env.DATABASE_URL
-  ? { connectionString: process.env.DATABASE_URL }
-  : {
-      host: process.env.DB_HOST_APP,
-      port: Number(process.env.DB_PORT_APP),
-      user: process.env.DB_USER_APP,
-      password: process.env.DB_PASSWORD_APP,
-      database: process.env.DB_NAME_APP,
-    };
-
-const pool = new Pool(poolConfig);
-
-async function expireSubscription(username) {
+async function expireSubscription(email) {
   try {
-    if (!username) {
-      console.error('❌ Por favor proporciona un nombre de usuario');
-      console.log('Uso: node scripts/testusers/expireSubscription.js <username>');
+    if (!email) {
+      console.error('❌ Por favor proporciona un correo');
+      console.log('Uso: node scripts/testusers/expireSubscription.js <email>');
       process.exit(1);
     }
 
-    console.log(`\n🔄 Expirando suscripción para: ${username}`);
+    console.log(`\n🔄 Expirando suscripción para: ${email}`);
 
     // Primero obtener el usuario
     const getUserRes = await pool.query(
-      `SELECT id, username, email, subscription_status FROM neon_auth.users WHERE username = $1`,
-      [username]
+      `SELECT id, username, email, subscription_status FROM neon_auth.users WHERE email = $1`,
+      [email]
     );
 
     if (getUserRes.rows.length === 0) {
-      console.error(`❌ Usuario ${username} no encontrado`);
+      console.error(`❌ Usuario ${email} no encontrado`);
       process.exit(1);
     }
 
@@ -83,5 +70,5 @@ async function expireSubscription(username) {
   }
 }
 
-const username = process.argv[2];
-expireSubscription(username);
+const email = process.argv[2];
+expireSubscription(email);

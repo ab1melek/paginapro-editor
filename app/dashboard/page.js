@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import CancelSubscriptionModal from "../../components/CancelSubscriptionModal";
 import PageList from "../../components/PageList";
 import SubscriptionButton from "../../components/SubscriptionButton";
 
 export default function DashboardPage() {
   const [pages, setPages] = useState([]);
   const [me, setMe] = useState(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const router = useRouter();
 
   // Obtener las páginas existentes
@@ -99,14 +101,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchPages();
+    
     // Cargar usuario actual para mostrarlo y ofrecer logout
-    (async () => {
+    const fetchUser = async () => {
       try {
         const r = await fetch('/api/auth/me', { cache: 'no-store' });
         const j = await r.json();
         setMe(j?.user || null);
       } catch {}
-    })();
+    };
+
+    fetchUser();
+
+    // Auto-refresh del estado de suscripción cada 30 segundos
+    // Esto asegura que si la suscripción expira, el usuario lo vea sin recargar
+    const interval = setInterval(fetchUser, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   async function handleLogout() {
@@ -114,6 +125,15 @@ export default function DashboardPage() {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch {}
     router.replace('/login');
+  }
+
+  async function handleCancelSuccess() {
+    // Recargar el usuario para actualizar su estado
+    try {
+      const r = await fetch('/api/auth/me', { cache: 'no-store' });
+      const j = await r.json();
+      setMe(j?.user || null);
+    } catch {}
   }
 
   function getSubscriptionBadge() {
@@ -156,10 +176,8 @@ export default function DashboardPage() {
     }
 
     // Suscripción activa
-    if (me.subscription_status === "active") {
-      const renewalText = daysLeft > 0 
-        ? ` - Renueva en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}` 
-        : '';
+    if (me.subscription_status === "active" && daysLeft > 0) {
+      const renewalText = ` - Renueva en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}`;
       
       return (
         <div style={{
@@ -169,8 +187,97 @@ export default function DashboardPage() {
           borderRadius: "6px",
           fontSize: "12px",
           fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
         }}>
-          ✅ Suscripción activa{renewalText}
+          <span>✅ Suscripción activa{renewalText}</span>
+          <button
+            onClick={() => setIsCancelModalOpen(true)}
+            style={{
+              padding: "4px 12px",
+              backgroundColor: "#ef4444",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              fontSize: "12px",
+              fontWeight: "600",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
+      );
+    }
+
+    // Suscripción activa pero expirada naturalmente (sin cancelar)
+    if (me.subscription_status === "active" && daysLeft <= 0) {
+      return (
+        <div style={{
+          padding: "8px 12px",
+          backgroundColor: "#fef2f2",
+          color: "#ef4444",
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}>
+          <span>⚠️ Suscripción expirada</span>
+          <SubscriptionButton />
+        </div>
+      );
+    }
+
+    // Suscripción cancelada manualmente (pero aún dentro del período pagado)
+    if (me.subscription_status === "canceled" && daysLeft > 0) {
+      return (
+        <div style={{
+          padding: "8px 12px",
+          backgroundColor: "#fef3c7",
+          color: "#92400e",
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}>
+          <span>⏳ Suscripción cancelada - {daysLeft} día{daysLeft !== 1 ? 's' : ''} restante{daysLeft !== 1 ? 's' : ''}</span>
+          <SubscriptionButton style={{
+            padding: "4px 12px",
+            backgroundColor: "#f59e0b",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+            fontSize: "12px",
+            fontWeight: "600",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }} />
+        </div>
+      );
+    }
+
+    // Suscripción cancelada y expirada
+    if (me.subscription_status === "canceled" && daysLeft <= 0) {
+      return (
+        <div style={{
+          padding: "8px 12px",
+          backgroundColor: "#fef2f2",
+          color: "#ef4444",
+          borderRadius: "6px",
+          fontSize: "12px",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}>
+          <span>🔒 Suscripción cancelada</span>
+          <SubscriptionButton />
         </div>
       );
     }
@@ -244,6 +351,14 @@ export default function DashboardPage() {
         </div>
       </div>
       <PageList pages={pages} onEdit={handleEdit} onDelete={handleDelete} />
+
+      {/* Modal de cancelación de suscripción */}
+      <CancelSubscriptionModal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        subscriptionId={me?.stripe_subscription_id}
+        onCancelSuccess={handleCancelSuccess}
+      />
     </main>
   );
 }

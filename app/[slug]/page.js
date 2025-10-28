@@ -38,6 +38,35 @@ export default async function PaginaPorSlug({ params }) {
         return <ReadOnlyPage pageData={pageData} />;
       }
 
+      // Suscripción cancelada pero aún dentro del período pagado → MOSTRAR (usuario pagó, puede usar hasta el final)
+      if (owner.subscription_status === "canceled" && expiresAt && expiresAt > now) {
+        return <ReadOnlyPage pageData={pageData} />;
+      }
+
+      // Suscripción cancelada y período expirado → BLOQUEAR
+      if (owner.subscription_status === "canceled" && (!expiresAt || expiresAt <= now)) {
+        return (
+          <div style={{
+            textAlign: "center",
+            padding: "100px 20px",
+            minHeight: "100vh",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "#f3f4f6",
+            fontFamily: "system-ui, -apple-system, sans-serif",
+          }}>
+            <h1 style={{ color: "#ef4444", marginBottom: "10px", fontSize: "28px" }}>
+              🔒 Suscripción cancelada
+            </h1>
+            <p style={{ color: "#6b7280", marginBottom: "20px", fontSize: "16px" }}>
+              La página no está disponible. Por favor, contacta al propietario para más información.
+            </p>
+          </div>
+        );
+      }
+
       // Trial/suscripción expirada → BLOQUEAR
       return (
         <div style={{

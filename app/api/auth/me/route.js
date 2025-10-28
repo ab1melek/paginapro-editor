@@ -17,7 +17,7 @@ export async function GET() {
     // Especificar el schema explícitamente para evitar conflictos con search_path
     console.log(`[/api/auth/me] Fetching user with ID: ${payload.id}`);
     const result = await query(
-      `SELECT id, username, email, is_special, subscription_status, trial_started_at, subscription_expires_at FROM neon_auth.users WHERE id = $1`,
+      `SELECT id, username, email, is_special, subscription_status, trial_started_at, subscription_expires_at, stripe_subscription_id FROM neon_auth.users WHERE id = $1`,
       [payload.id]
     );
 

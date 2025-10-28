@@ -91,7 +91,8 @@ export async function PUT(req) {
       return NextResponse.json({ error: "Falta el id para actualizar" }, { status: 400 });
     }
     // Autenticación y autorización
-    const token = cookies().get(COOKIE_NAME)?.value;
+    const cookieStore = await cookies();
+    const token = cookieStore.get(COOKIE_NAME)?.value;
   const user = token ? await verifyToken(token) : null;
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     if (!user.is_special) {

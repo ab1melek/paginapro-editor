@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import {
-    expireSubscriptionForUser,
-    saveStripeCustomerForUser,
-    saveSubscriptionForUser
+  expireSubscriptionForUser,
+  getUserSubscriptionStatus,
+  saveStripeCustomerForUser,
+  saveSubscriptionForUser
 } from "../../services/stripe.db.service.js";
+import {
+  syncSubscriptionFromStripe
+} from "../../services/sync.db.service.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -45,11 +49,10 @@ export async function POST(req) {
         break;
       }
 
-      // Cuando la suscripción se crea o actualiza
-      case "customer.subscription.created":
-      case "customer.subscription.updated": {
+      // Cuando la suscripción se crea
+      case "customer.subscription.created": {
         const sub = event.data.object;
-        console.log(`[webhook] Subscription event:`, {
+        console.log(`[webhook] Nueva suscripción:`, {
           id: sub.id,
           customer: sub.customer,
           status: sub.status,
@@ -89,21 +92,91 @@ export async function POST(req) {
           break;
         }
 
-        console.log(`🔄 Suscripción ${event.type === 'customer.subscription.created' ? 'creada' : 'actualizada'}: ${sub.id} para usuario ${userId}`);
+        console.log(`✅ Suscripción creada: ${sub.id} para usuario ${userId}`);
+        
+        // Guardar la suscripción primero
         await saveSubscriptionForUser(userId, sub);
-        console.log(`✅ Suscripción guardada exitosamente`);
+        console.log(`✅ Suscripción guardada en BD`);
+        
+        // Sincronizar desde Stripe para garantizar consistencia
+        console.log(`[webhook] 🔄 Sincronizando nueva suscripción desde Stripe...`);
+        const synced = await syncSubscriptionFromStripe(userId, sub.id);
+        
+        if (synced) {
+          console.log(`[webhook] ✅ Nueva suscripción sincronizada correctamente`);
+        } else {
+          console.warn(`[webhook] ⚠️ Sincronización de nueva suscripción falló`);
+        }
         break;
       }
 
-      // Cuando la suscripción se cancela
+      // Cuando la suscripción se actualiza
+      case "customer.subscription.updated": {
+        const sub = event.data.object;
+        console.log(`[webhook] Suscripción actualizada:`, {
+          id: sub.id,
+          customer: sub.customer,
+          status: sub.status,
+          current_period_end: sub.current_period_end,
+        });
+
+        const customer = await stripe.customers.retrieve(sub.customer);
+        const userId = customer.metadata?.userId;
+
+        if (!userId) {
+          console.warn(`[webhook] No se pudo obtener userId para subscription ${sub.id}`);
+          break;
+        }
+
+        console.log(`🔄 Suscripción actualizada: ${sub.id} para usuario ${userId}`);
+        
+        // Guardar los cambios de la suscripción
+        await saveSubscriptionForUser(userId, sub);
+        console.log(`✅ Cambios de suscripción guardados en BD`);
+        
+        // Sincronizar desde Stripe para garantizar consistencia
+        console.log(`[webhook] 🔄 Sincronizando actualización desde Stripe...`);
+        const synced = await syncSubscriptionFromStripe(userId, sub.id);
+        
+        if (synced) {
+          console.log(`[webhook] ✅ Actualización sincronizada correctamente`);
+        } else {
+          console.warn(`[webhook] ⚠️ Sincronización de actualización falló`);
+        }
+        break;
+      }
+
+      // Cuando la suscripción se cancela (ya sea por el usuario o por nosotros)
       case "customer.subscription.deleted": {
         const sub = event.data.object;
         const customer = await stripe.customers.retrieve(sub.customer);
         const userId = customer.metadata?.userId;
 
         if (userId) {
-          console.log(`❌ Suscripción cancelada: ${sub.id}`);
-          await expireSubscriptionForUser(userId);
+          console.log(`❌ Suscripción cancelada: ${sub.id} para usuario ${userId}`);
+          console.log(`   - canceled_at: ${new Date(sub.canceled_at * 1000).toISOString()}`);
+          console.log(`   - Status en Stripe: ${sub.status}`);
+          
+          // NUEVA LÓGICA: Sincronizar automáticamente desde Stripe
+          console.log(`[webhook] 🔄 Sincronizando desde Stripe...`);
+          const synced = await syncSubscriptionFromStripe(userId, sub.id);
+          
+          if (synced) {
+            console.log(`[webhook] ✅ Sincronización completada automáticamente`);
+          } else {
+            console.warn(`[webhook] ⚠️ Sincronización automática falló, usando lógica legacy`);
+            
+            // Fallback a lógica anterior si sincronización falla
+            const userStatus = await getUserSubscriptionStatus(userId);
+            if (userStatus?.subscription_status === 'canceled') {
+              console.log(`✅ Usuario ${userId} ya tiene status='canceled'`);
+            } else {
+              await expireSubscriptionForUser(userId);
+              console.log(`✅ Usuario ${userId} marcado con subscription_status='expired'`);
+            }
+          }
+        } else {
+          console.warn(`[webhook] No se pudo obtener userId para subscription ${sub.id}`);
         }
         break;
       }
@@ -112,8 +185,31 @@ export async function POST(req) {
       case "invoice.paid": {
         const invoice = event.data.object;
         console.log(`💰 Invoice pagado: ${invoice.id}`);
-        // La suscripción se guarda en checkout.session.completed o customer.subscription.updated
-        // No necesitamos hacer nada aquí para suscripciones nuevas
+        console.log(`   - Customer: ${invoice.customer}`);
+        console.log(`   - Subscription: ${invoice.subscription}`);
+        console.log(`   - Amount: ${invoice.amount_paid}${invoice.currency.toUpperCase()}`);
+        
+        // Si hay una suscripción asociada, sincronizar desde Stripe
+        if (invoice.subscription) {
+          try {
+            const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+            const customer = await stripe.customers.retrieve(subscription.customer);
+            const userId = customer.metadata?.userId;
+            
+            if (userId) {
+              console.log(`[webhook] 🔄 Sincronizando renovación desde Stripe...`);
+              const synced = await syncSubscriptionFromStripe(userId, subscription.id);
+              
+              if (synced) {
+                console.log(`[webhook] ✅ Renovación sincronizada correctamente`);
+              } else {
+                console.warn(`[webhook] ⚠️ Sincronización de renovación falló`);
+              }
+            }
+          } catch (err) {
+            console.error(`⚠️ Error procesando renovación:`, err.message);
+          }
+        }
         break;
       }
 
@@ -121,6 +217,14 @@ export async function POST(req) {
       case "invoice.payment_failed": {
         const invoice = event.data.object;
         console.warn(`⚠️ Pago fallido para factura: ${invoice.id}`);
+        console.warn(`   - Customer: ${invoice.customer}`);
+        console.warn(`   - Subscription: ${invoice.subscription}`);
+        console.warn(`   - Razón: ${invoice.last_finalization_error?.message || 'desconocida'}`);
+        
+        // IMPORTANTE: Si está cancelada en BD, no hay problema
+        // Si no está cancelada pero el pago falla, Stripe reintentará según su política
+        // Pero NO renovará si la suscripción está en status 'canceled'
+        
         // Aquí puedes enviar un email al usuario notificándole del fallo
         // TODO: Implementar notificación por email
         break;

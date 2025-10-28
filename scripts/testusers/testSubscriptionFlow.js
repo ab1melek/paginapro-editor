@@ -5,19 +5,21 @@
  * Uso: node scripts/testusers/testSubscriptionFlow.js
  */
 
-import pool from "../../db/pool.js";
+import { createPool } from "./dbPool.js";
+const pool = createPool();
 
 async function testSubscriptionFlow() {
+  const email = process.argv[2] || "test1@mail.com";
   const client = await pool.connect();
 
   try {
-    console.log("🧪 PRUEBAS DE FLUJO DE SUSCRIPCIONES\n");
+    console.log(`🧪 PRUEBAS DE FLUJO DE SUSCRIPCIONES (${email})\n`);
 
-    // 1. Obtener usuario de prueba
+    // 1. Obtener usuario por correo
     console.log("1️⃣  Obteniendo usuario de prueba...");
     const userRes = await client.query(
       `SELECT * FROM neon_auth.users WHERE email = $1`,
-      ["test1@mail.com"]
+      [email]
     );
 
     if (userRes.rows.length === 0) {
@@ -122,19 +124,18 @@ async function testSubscriptionFlow() {
       console.log(`   Renovación: ${activeExpiresAt.toLocaleString()}\n`);
     }
 
-    // 10. Reset para próxima prueba
-    console.log("🔄 Reseteando usuario para próxima prueba...");
-    await client.query(
-      `UPDATE neon_auth.users 
-       SET subscription_status = 'none', 
-           trial_started_at = NULL, 
-           subscription_expires_at = NULL,
-           stripe_customer_id = NULL,
-           stripe_subscription_id = NULL
-       WHERE id = $1`,
+    // 10. NO resetear - dejar suscripción activa para pruebas
+    console.log("✅ Usuario listo para pruebas con suscripción ACTIVA");
+    const finalRes = await client.query(
+      `SELECT subscription_status, subscription_expires_at FROM neon_auth.users WHERE id = $1`,
       [user.id]
     );
-    console.log("✅ Usuario reseteado\n");
+    const finalUser = finalRes.rows[0];
+    const finalExpiresAt = new Date(finalUser.subscription_expires_at);
+    const finalDaysLeft = Math.ceil((finalExpiresAt - new Date()) / (1000 * 60 * 60 * 24));
+    console.log(`   Status: ${finalUser.subscription_status}`);
+    console.log(`   Expira en: ${finalExpiresAt.toLocaleString()}`);
+    console.log(`   Días restantes: ${finalDaysLeft}\n`);
 
     console.log("✅ TODAS LAS PRUEBAS COMPLETADAS EXITOSAMENTE\n");
     console.log("📝 Resumen del flujo:");

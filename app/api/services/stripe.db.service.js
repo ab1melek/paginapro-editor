@@ -96,3 +96,25 @@ export async function getUserByStripeCustomerId(customerId) {
   const result = await query(sql, [customerId]);
   return result.rows[0] || null;
 }
+
+/**
+ * Marca la suscripción como cancelada de forma manual (usuario solicita cancelación)
+ * IMPORTANTE: Conserva subscription_expires_at para que el usuario tenga acceso hasta el último día pagado
+ * Solo cambia el estado a 'canceled' para indicar que no habrá renovación
+ */
+export async function cancelSubscriptionForUser(userId, subscriptionId) {
+  const sql = `
+    UPDATE neon_auth.users 
+    SET subscription_status = $1
+    WHERE id = $2
+  `;
+  
+  console.log('[cancelSubscriptionForUser]', {
+    userId,
+    subscriptionId,
+    newStatus: 'canceled',
+    note: 'subscription_expires_at se conserva para acceso hasta el último día pagado'
+  });
+  
+  await query(sql, ['canceled', userId]);
+}
