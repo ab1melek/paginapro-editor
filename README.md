@@ -5,7 +5,7 @@
 ## 🎯 Qué es
 
 Una plataforma para crear/editar páginas web visuales con:
-- **Editor**: Drag & drop, bloques customizables, preview responsive
+- **Editor**: Drag & drop, bloques customizables
 - **Suscripciones**: Compra, auto-renovación, cancelación (ZERO charges)
 - **Sincronización**: BD-Stripe siempre consistentes
 - **Storage**: Imágenes en Vercel Blob, datos en PostgreSQL
@@ -67,7 +67,6 @@ docs/README.md                    ← Índice maestro
 ### 🎨 Editor
 - ✅ Bloques personalizados con colores
 - ✅ Upload de imágenes
-- ✅ Preview responsive
 - ✅ Render servidor (SEO)
 
 ### 💳 Suscripciones

@@ -26,7 +26,7 @@ app/
 │   ├── services/          → Servicios de BD (queries, migrations)
 │   └── middlewares/
 ├── auth/                  → Server Components para auth
-├── dashboard/             → Dashboard del usuario (editor, preview, etc)
+├── dashboard/             → Dashboard del usuario (editor, etc)
 ├── [slug]/                → Página pública por slug
 └── config.js              → Configuración centralizada
 

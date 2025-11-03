@@ -84,7 +84,6 @@ function EditorPageInner() {
   const searchParams = useSearchParams();
   const pageId = searchParams.get("id");
   const pageSlug = searchParams.get("slug");
-  const previewKey = searchParams.get("previewKey");
   const [initialData, setInitialData] = useState(null);
   const [pageStyle, setPageStyle] = useState({ backgroundColor: '#ffffff', containerBackgroundColor: '#ffffff' });
 
@@ -134,36 +133,7 @@ function EditorPageInner() {
     } catch {}
 
     const loadPage = async () => {
-      // Caso 1: Borrador (previewKey)
-      if (previewKey && typeof window !== 'undefined') {
-        try {
-          const raw = sessionStorage.getItem(previewKey);
-          if (raw) {
-            // Cargar plantilla y pedir slug inmediatamente para configurar uploads
-            let data = JSON.parse(raw);
-            const root = Array.isArray(data) ? (data[0] || {}) : (data || {});
-            // Si no hay slug, solicitarlo ahora
-            if (!root.slug) {
-              const picked = await promptUniqueSlug('');
-              if (!picked) { window.location.href = '/dashboard'; return; }
-              root.slug = picked.slug;
-              // Asignar un nombre si no existe
-              if (!root.name && !root.title) {
-                root.name = picked.name || picked.slug;
-              }
-              // Volver a colocar el root modificado respetando el wrapper
-              data = Array.isArray(data) ? [root] : root;
-            }
-            try { if (root.slug) window.__PP_UPLOAD_SLUG__ = root.slug; } catch {}
-            setInitialData(data);
-            return;
-          }
-        } catch (e) {
-          console.warn('[Editor] No se pudo leer previewKey:', e);
-        }
-      }
-
-      // Caso 2: Edición existente por id/slug
+      // Caso 1: Edición existente por id/slug
       if (pageId || pageSlug) {
         try {
           const res = pageId ? await fetch(`/api/editor?id=${pageId}`) : await fetch(`/api/editor?slug=${encodeURIComponent(pageSlug)}`);
@@ -193,7 +163,7 @@ function EditorPageInner() {
         return;
       }
 
-      // Caso 3: Nueva página -> pedir slug
+      // Caso 2: Nueva página -> pedir slug
       const picked = await promptUniqueSlug('');
       if (!picked) { if (typeof window !== 'undefined') window.location.href = '/dashboard'; return; }
       const bootstrap = {
@@ -207,7 +177,7 @@ function EditorPageInner() {
     };
 
     loadPage();
-  }, [pageId, pageSlug, previewKey]);
+  }, [pageId, pageSlug]);
 
   // Aplicar estilos inmediatos al cambiar pageStyle (modo edición)
   useEffect(() => {
@@ -279,33 +249,7 @@ function EditorPageInner() {
     }
   };
 
-  const handlePreviewClick = async () => {
-    if (!editorRef.current) return;
-    try {
-      const savedData = await editorRef.current.save();
-      // Asegurar que el preview refleje los colores de la barra superior
-      savedData.pageSettings = {
-        ...(savedData.pageSettings || {}),
-        ...(pageStyle?.backgroundColor ? { backgroundColor: pageStyle.backgroundColor } : {}),
-        ...(pageStyle?.containerBackgroundColor ? { containerBackgroundColor: pageStyle.containerBackgroundColor } : {}),
-      };
-      // Guardar borrador temporal en sessionStorage
-      const key = `preview-${Date.now()}`;
-      try {
-        sessionStorage.setItem(key, JSON.stringify(savedData));
-      } catch (e) {
-        console.warn("No se pudo guardar preview en sessionStorage:", e);
-      }
-      // Redirigir al preview incluyendo previewKey y opcionalmente id
-      const url = pageId
-        ? `/dashboard/editor/preview?id=${pageId}&previewKey=${key}`
-        : `/dashboard/editor/preview?previewKey=${key}`;
-      window.location.href = url;
-    } catch (e) {
-      console.error("Error al generar preview:", e);
-      alert("No se pudo generar el preview. Intenta guardar primero.");
-    }
-  };
+
 
 
   
@@ -317,7 +261,6 @@ function EditorPageInner() {
           <Button label="Dashboard" onClick={() => window.location.href = "/dashboard"} className={styles.actionButton} />
           <div className={styles.actionsSpacer} />
           <div className={styles.actionsGroupRight}>
-            <Button label="Preview" onClick={handlePreviewClick} className={styles.actionButton} />
             <Button label="Guardar" onClick={handleSaveClick} className={styles.actionButton} />
           </div>
         </div>
